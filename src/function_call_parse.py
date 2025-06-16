@@ -23,7 +23,7 @@ class FuncItem:
     level: int
 
 
-def stack_pop_stop_with_metachar(stack):
+def stack_token_lex(stack):
     stop_chars = (FUNC_LEFT_BOUNDRY, FUNC_RIGHT_BOUNDRY, ARGS_SPLIT)
     l = []
     c = ""
@@ -44,39 +44,28 @@ def func_lex(s):
         if c in string.whitespace or c == '':
             continue
         if FUNC_LEFT_BOUNDRY == c:
-            token = stack_pop_stop_with_metachar(_mystack)
+            token = stack_token_lex(_mystack)
             # print(FUNC_LEFT_BOUNDRY, ":", token)
             if token:
                 tokens.append(token)
             tokens.append(FUNC_LEFT_BOUNDRY)
-            # token_levels.append([[token, namespace]])
-            # namespace.append(token)
-            # print(FUNC_LEFT_BOUNDRY, " token_levels:", token_levels)
         elif FUNC_RIGHT_BOUNDRY == c:
             # 完成右边括号匹配以后, 层级 -1.
-            token = stack_pop_stop_with_metachar(_mystack)
-            # if token: # 避免 ['foo', '(', 'bar', '(', '2', "'a'", ')', 'bas', '(', '', ')', '', ')']
-            # print("FUNC_RIGHT_BOUNDRY:", token)
+            token = stack_token_lex(_mystack)
             if token:
                 tokens.append(token)
             tokens.append(FUNC_RIGHT_BOUNDRY)
-            # token_levels.append([[token, namespace]])
-            # print(FUNC_RIGHT_BOUNDRY, " token_levels:", token_levels)
-            # namespace.pop()  # 注意 pop 空栈会报 IndexError 错误.
         elif ARGS_SPLIT == c: # 避免
-            token = stack_pop_stop_with_metachar(_mystack)
+            token = stack_token_lex(_mystack)
             if token:
                 tokens.append(token)
             tokens.append(ARGS_SPLIT)
-            # token_levels.append([[token, namespace]])
-            # print(ARGS_SPLIT, " token_levels:", token_levels)
         else:
             _mystack.append(c)  
     return tokens
 
 
-def stack_parse(stack):
-    # stop_chars = (FUNC_LEFT_BOUNDRY, FUNC_RIGHT_BOUNDRY, ARGS_SPLIT)
+def parse_func_arguments(stack):
     stop_chars = (FUNC_LEFT_BOUNDRY,)
     l = []
     c = ""
@@ -84,18 +73,17 @@ def stack_parse(stack):
         c = stack.pop()
         l.append(c)
     if stack:
-        # l.append(FUNC_LEFT_BOUNDRY)
+        # pop function name
         l.append(stack.pop())
     l.reverse()
     # logger.debug("token:", token)
     return l
 
 
-def func_parse(tokens):
-    # print(tokens)
-    res = []
-    _stack = []
-    namespace = []
+def func_ast_parser(tokens):
+    res = []     # 保存解析之后的语法树
+    _stack = []  # 对词法 token 进行入栈解析
+    namespace = []  # 记录
     level = 0
     for token in  tokens:
         if token == FUNC_LEFT_BOUNDRY:
@@ -109,13 +97,13 @@ def func_parse(tokens):
             # 完成右边括号匹配以后, 完成一个无嵌套函数的调用解析. 
             # 层级 -1.
             # res = _stack and _stack.pop()
-            _func_item = stack_parse(_stack)
-            func_name, _, *args = _func_item
+            _func_item = parse_func_arguments(_stack)
+            func_name, _, *args = _func_item  # funcname ( arg1 arg2
             # item = [func_name, *args]  # 保存此列表会得到一个嵌套的列表(类似于s表达式)
             _ns = namespace.copy()
             func_item = FuncItem(name=func_name, args=args, namespace=_ns, level=level)
             res.append(func_item)
-            _stack.append(func_item)
+            _stack.append(func_item)  # 把嵌套函数作为上一层函数的参数放在参数位置上.
             # print("func_items _stack:", _stack)
             level = level - 1
             namespace and namespace.pop()
@@ -137,6 +125,6 @@ if __name__ == "__main__":
     func_call_s = "foo(bar(2  , zoo(3,6),'a'), bas())"
     # func_call_s = "foo(bar( 2,'a'), bas())"
     mytokens = func_lex(func_call_s)
-    res = func_parse(mytokens)  # 得到了嵌套函数的求值顺序 AST.
+    res = func_ast_parser(mytokens)  # 得到了嵌套函数的求值顺序 AST.
     print("res:")
     pprint(res)
