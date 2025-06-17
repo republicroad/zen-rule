@@ -37,7 +37,6 @@ def stack_token_lex(stack):
 
 
 def func_lex(s):
-    print(s)
     tokens = []
     _mystack = []
     for c in s:
