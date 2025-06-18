@@ -6,12 +6,25 @@
 # https://regex101.com/r/Umsdg0/1
 import string
 from pprint import pprint
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
+from pathlib import Path
 
 
 FUNC_LEFT_BOUNDRY = "("
 FUNC_RIGHT_BOUNDRY = ")"
 ARGS_SPLIT = ","
+
+# https://stackoverflow.com/a/75291788
+# https://stackoverflow.com/a/76017464
+
+# @dataclass
+# class FuncMeta:
+#     """Function items"""
+#     name: str
+#     args: list
+#     level: int
+#     namespace: list
+#     ns: list = field(init=False)   # 初始化可以不用输入, asdict 也可以导出此字段. 从 namespace 派生.
 
 
 @dataclass
@@ -19,8 +32,20 @@ class FuncItem:
     """Function items"""
     name: str
     args: list
-    namespace: list
     level: int
+    namespace: list
+
+    @property
+    def ns(self):
+        return ".".join(self.namespace)
+
+    def to_dict(self):
+        d = {
+            **asdict(self),
+            **{"ns": self.ns}}
+        del d["namespace"]
+        return d
+
 
 
 def stack_token_lex(stack):
@@ -101,8 +126,8 @@ def func_ast_parser(tokens):
             # item = [func_name, *args]  # 保存此列表会得到一个嵌套的列表(类似于s表达式)
             _ns = namespace.copy()
             func_item = FuncItem(name=func_name, args=args, namespace=_ns, level=level)
-            res.append(asdict(func_item))
-            _stack.append(asdict(func_item))  # 把嵌套函数作为上一层函数的参数放在参数位置上.
+            res.append(func_item.to_dict())
+            _stack.append(func_item.to_dict())  # 把嵌套函数作为上一层函数的参数放在参数位置上.
             # print("func_items _stack:", _stack)
             level = level - 1
             namespace and namespace.pop()
@@ -119,14 +144,21 @@ def func_ast_parser(tokens):
 # 这样可以在保存规则时解析一次执行顺序，之后直接按解析的顺序去执行函数即可.
 # 实现一个 AST 的执行引擎用来执行规则输入. 
 
+def zen_custom_expr_parse(expr):
+    # expr func_call_s
+    mytokens = func_lex(expr)
+    expr_ast = func_ast_parser(mytokens)  # 得到了嵌套函数的求值顺序 AST.
+    return expr_ast
+
 
 if __name__ == "__main__":
     func_call_s = "foo(bar(2  , zoo(3,6),'a'), bas())"
     # func_call_s = "foo(bar( 2,'a'), bas())"
-    mytokens = func_lex(func_call_s)
-    res = func_ast_parser(mytokens)  # 得到了嵌套函数的求值顺序 AST.
-    print("res:")
-    pprint(res)
+    # func_call_s = "rand(100)"
+    expr_ast = zen_custom_expr_parse(func_call_s)
+    print("expr:   :", func_call_s)
+    print("expr_ast:", expr_ast)
+    pprint(expr_ast)
     import json
-    rrr = json.dumps(res)
+    rrr = json.dumps(expr_ast)
     print(rrr)

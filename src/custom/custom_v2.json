@@ -39,19 +39,19 @@
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": "foo(bar( 2,'a'), bas())"
+              "value": "foo(bar(2  , zoo(3,6),'a'), bas())"
             }
           ],
           "expr_asts": [
             {
               "id": "a7b82f73-92ed-4abe-b4b9-e3caf6436b9b",
               "key": "num",
-              "value": []
+              "value": [{"name": "rand", "args": ["100"], "level": 1, "ns": "rand", "engine": "zen"}]
             },
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": []
+              "value": [{"name": "zoo", "args": ["3", "6"], "level": 3, "ns": "foo.bar.zoo", "engine": "udf"}, {"name": "bar", "args": ["2", {"name": "zoo", "args": ["3", "6"], "level": 3, "ns": "foo.bar.zoo"}, "'a'"], "level": 2, "ns": "foo.bar"}, {"name": "bas", "args": [], "level": 2, "ns": "foo.bas"}, {"name": "foo", "args": [{"name": "bar", "args": ["2", {"name": "zoo", "args": ["3", "6"], "level": 3, "ns": "foo.bar.zoo"}, "'a'"], "level": 2, "ns": "foo.bar"}, {"name": "bas", "args": [], "level": 2, "ns": "foo.bas"}], "level": 1, "ns": "foo"}]
             }
           ]
         }

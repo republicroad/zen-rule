@@ -1,0 +1,106 @@
+from typing import List, Dict, Any
+from inspect import signature, Parameter, iscoroutinefunction
+
+# Define classes for managing function arguments and return values
+class FuncArg:
+    def __init__(self, arg_name: str, arg_type: str, defaults: Any, comments: str):
+        self.arg_name = arg_name
+        self.arg_type = arg_type
+        self.defaults = defaults
+        self.comments = comments
+
+    def to_dict(self):
+        return {
+            "arg_name": self.arg_name,
+            "arg_type": self.arg_type,
+            "defaults": self.defaults,
+            "comments": self.comments,
+        }
+
+class FuncValue:
+    def __init__(self, field_name: str, field_type: str, defaults: Any, comments: str):
+        self.field_name = field_name
+        self.field_type = field_type
+        self.defaults = defaults
+        self.comments = comments
+
+    def to_dict(self):
+        return {
+            "field_name": self.field_name,
+            "field_type": self.field_type,
+            "defaults": self.defaults,
+            "comments": self.comments,
+        }
+
+# UDF Manager class to manage the registered UDFs
+class UDFManager:
+    def __init__(self):
+        self.functions = {}
+
+    def register_function(self, func, comments=None, args_info=None, return_info=None):
+        sig = signature(func)
+        arguments = []
+
+        # Use provided args_info or derive from function signature
+        if args_info:
+            for info in args_info:
+                arguments.append(info)
+        else:
+            for name, param in sig.parameters.items():
+                arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
+                defaults = '' if param.default == Parameter.empty else param.default
+                comments = f'{name} parameter'
+                arguments.append(FuncArg(name, arg_type, defaults, comments))
+
+        # Use provided return_info or default to a simple return value
+        if return_info:
+            return_values = {k: v for k, v in return_info.items()}
+        else:
+            return_values = {
+                "return_value": FuncValue("return", "string", "", "Function return value")
+            }
+
+        self.functions[func.__name__] = {
+            "func": func,
+            "name": func.__name__,
+            "arglength": len(arguments),
+            "arguments": [arg.to_dict() for arg in arguments],
+            # 以后应该改成这个配置
+            # "return_values": {k: v.to_dict() for k, v in return_values.items()},
+            "return_values": {k: v.to_dict()['defaults'] for k, v in return_values.items()},
+            "comments": comments or func.__doc__
+        }
+
+    def get_udf_info(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "name": data["name"],
+                "arglength": data["arglength"],
+                "arguments": data["arguments"],
+                "return_values": data["return_values"],
+                "comments": data["comments"]
+            }
+            for data in self.functions.values()
+        ]
+
+    async def call_udf(self, udf_name: str, *args, **kwargs) -> Any:
+
+        if udf_name in self.functions:
+      
+            func = self.functions[udf_name]["func"]
+            if iscoroutinefunction(func):
+                return await func(*args, **kwargs)
+            else:
+                return func(*args, **kwargs)
+        else:
+            raise ValueError(f"Function '{udf_name}' is not registered in UDFManager")
+
+# Instantiate UDF Manager
+udf_manager = UDFManager()
+
+# Decorator to register UDFs with optional custom metadata
+def udf(comments=None, args_info=None, return_info=None):
+    def decorator(func):
+        udf_manager.register_function(func, comments, args_info, return_info)
+        return func
+    return decorator

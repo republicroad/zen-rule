@@ -38,7 +38,8 @@ class zenRule:
         self.call_udf = lambda x: x
 
     def create_decision(self, content) -> ZenDecision:
-        return self.engine.create_decision(content)
+        content_ = self._parse_graph_nodes(content)
+        return self.engine.create_decision(content_)
 
     def get_decision(self, key) -> ZenDecision:
         zendecision = self.decision_cache.get(key, None)
@@ -75,7 +76,7 @@ class zenRule:
         
         ### 2.将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
 
-        return json.dumps(rule_graph['content']), meta
+        return json.dumps(rule_graph['content'])
 
     async def custom_handler_v1(self, request, **kwargs):
         funcs = request.node["config"].get("inputs", [])
