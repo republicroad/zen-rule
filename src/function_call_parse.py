@@ -6,7 +6,7 @@
 # https://regex101.com/r/Umsdg0/1
 import string
 from pprint import pprint
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 
 FUNC_LEFT_BOUNDRY = "("
@@ -101,8 +101,8 @@ def func_ast_parser(tokens):
             # item = [func_name, *args]  # 保存此列表会得到一个嵌套的列表(类似于s表达式)
             _ns = namespace.copy()
             func_item = FuncItem(name=func_name, args=args, namespace=_ns, level=level)
-            res.append(func_item)
-            _stack.append(func_item)  # 把嵌套函数作为上一层函数的参数放在参数位置上.
+            res.append(asdict(func_item))
+            _stack.append(asdict(func_item))  # 把嵌套函数作为上一层函数的参数放在参数位置上.
             # print("func_items _stack:", _stack)
             level = level - 1
             namespace and namespace.pop()
@@ -127,3 +127,6 @@ if __name__ == "__main__":
     res = func_ast_parser(mytokens)  # 得到了嵌套函数的求值顺序 AST.
     print("res:")
     pprint(res)
+    import json
+    rrr = json.dumps(res)
+    print(rrr)
