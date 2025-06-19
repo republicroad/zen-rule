@@ -1,5 +1,8 @@
+import logging
+from pprint import pformat
 from typing import List, Dict, Any
 from inspect import signature, Parameter, iscoroutinefunction
+logger = logging.getLogger(__name__)
 
 # Define classes for managing function arguments and return values
 class FuncArg:
@@ -36,6 +39,14 @@ class FuncValue:
 class UDFManager:
     def __init__(self):
         self.functions = {}
+        self.param_annotation = {
+            str: "string",
+            dict: "json",
+            list: "json",
+            tuple: "json",
+            int: "number",
+            float: "number",
+        }
 
     def register_function(self, func, comments=None, args_info=None, return_info=None):
         sig = signature(func)
@@ -46,10 +57,14 @@ class UDFManager:
             for info in args_info:
                 arguments.append(info)
         else:
+            logger.warning(f"sig.parameters: {sig.parameters}")
+            logger.warning(f"sig.parameters items(): {pformat(sig.parameters.items())}")
             for name, param in sig.parameters.items():
-                arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
+                # arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
+                arg_type = self.param_annotation.get(param.annotation, "Any")
                 defaults = '' if param.default == Parameter.empty else param.default
-                comments = f'{name} parameter'
+                # comments = f'{name} parameter'
+                comments = f'{name}:{arg_type}'
                 arguments.append(FuncArg(name, arg_type, defaults, comments))
 
         # Use provided return_info or default to a simple return value
@@ -82,6 +97,17 @@ class UDFManager:
             }
             for data in self.functions.values()
         ]
+
+    async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
+        if udf_name in self.functions:
+      
+            func = self.functions[udf_name]["func"]
+            if iscoroutinefunction(func):
+                return await func(*args, **kwargs)
+            else:
+                return func(*args, **kwargs)
+        else:
+            raise ValueError(f"Function '{udf_name}' is not registered in UDFManager")
 
     async def call_udf(self, udf_name: str, *args, **kwargs) -> Any:
 

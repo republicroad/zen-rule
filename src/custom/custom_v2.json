@@ -39,7 +39,7 @@
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": "foo(bar(2  , zoo(3,6),'a'), bas())"
+              "value": "udf:foo(udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
             }
           ],
           "expr_asts": [
@@ -51,7 +51,7 @@
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": [{"name": "zoo", "args": ["3", "6"], "level": 3, "ns": "foo.bar.zoo", "engine": "udf"}, {"name": "bar", "args": ["2", {"name": "zoo", "args": ["3", "6"], "level": 3, "ns": "foo.bar.zoo"}, "'a'"], "level": 2, "ns": "foo.bar"}, {"name": "bas", "args": [], "level": 2, "ns": "foo.bas"}, {"name": "foo", "args": [{"name": "bar", "args": ["2", {"name": "zoo", "args": ["3", "6"], "level": 3, "ns": "foo.bar.zoo"}, "'a'"], "level": 2, "ns": "foo.bar"}, {"name": "bas", "args": [], "level": 2, "ns": "foo.bas"}], "level": 1, "ns": "foo"}]
+              "value": [{"name": "rand", "args": ["100"], "level": 3, "ns": "udf:foo.udf:bar.rand"}, {"name": "udf:zoo", "args": ["3", "6"], "level": 3, "ns": "udf:foo.udf:bar.udf:zoo"}, {"name": "udf:bar", "args": [{"name": "rand", "args": ["100"], "level": 3, "ns": "udf:foo.udf:bar.rand"}, {"name": "udf:zoo", "args": ["3", "6"], "level": 3, "ns": "udf:foo.udf:bar.udf:zoo"}, "'a'"], "level": 2, "ns": "udf:foo.udf:bar"}, {"name": "udf:bas", "args": [], "level": 2, "ns": "udf:foo.udf:bas"}, {"name": "udf:foo", "args": [{"name": "udf:bar", "args": [{"name": "rand", "args": ["100"], "level": 3, "ns": "udf:foo.udf:bar.rand"}, {"name": "udf:zoo", "args": ["3", "6"], "level": 3, "ns": "udf:foo.udf:bar.udf:zoo"}, "'a'"], "level": 2, "ns": "udf:foo.udf:bar"}, {"name": "udf:bas", "args": [], "level": 2, "ns": "udf:foo.udf:bas"}], "level": 1, "ns": "udf:foo"}]
             }
           ]
         }

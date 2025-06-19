@@ -1,19 +1,21 @@
 
+from pprint import pprint
+from pathlib import Path
 from src.udf_manager import udf_manager, udf, FuncArg, FuncValue
 
 
-@udf
-def fccd():
-    pass
-
-
-@udf
-async def fccd2():
+@udf()
+def func1(x: list, y: dict, z,*, k=1):
     pass
 
 
 @udf()
-async def fccd3(*args, **kwargs):
+async def func2(a: str, b:int, c: Path, *args, **kwargs):
+    pass
+
+
+@udf()
+async def func3(*args, **kwargs):
     pass
 
 
@@ -27,8 +29,13 @@ async def fccd3(*args, **kwargs):
     return_info={"ipsegment": FuncValue(field_name="output_time", field_type="string", defaults="", comments="output_time")}
         
 )
-async def adjust_time(*args, **kwargs):
+async def demofunc(*args, **kwargs):
     pass
 
 
-print(udf_manager.get_udf_info())
+@udf()
+def foo():
+    pass
+
+
+pprint(udf_manager.get_udf_info())

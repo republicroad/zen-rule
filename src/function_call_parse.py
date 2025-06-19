@@ -41,11 +41,11 @@ class FuncItem:
 
     def to_dict(self):
         d = {
-            **asdict(self),
-            **{"ns": self.ns}}
+                **asdict(self),
+                **{"ns": self.ns}
+            }
         del d["namespace"]
         return d
-
 
 
 def stack_token_lex(stack):
@@ -61,7 +61,7 @@ def stack_token_lex(stack):
     return token
 
 
-def func_lex(s):
+def func_lexer(s):
     tokens = []
     _mystack = []
     for c in s:
@@ -146,13 +146,14 @@ def func_ast_parser(tokens):
 
 def zen_custom_expr_parse(expr):
     # expr func_call_s
-    mytokens = func_lex(expr)
+    mytokens = func_lexer(expr)
     expr_ast = func_ast_parser(mytokens)  # 得到了嵌套函数的求值顺序 AST.
     return expr_ast
 
 
 if __name__ == "__main__":
-    func_call_s = "foo(bar(2  , zoo(3,6),'a'), bas())"
+    # "udf:foo(udf:bar(2  , rand(100),'a'), bas())"  "udf:foo(udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
+    func_call_s = "udf:foo(udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
     # func_call_s = "foo(bar( 2,'a'), bas())"
     # func_call_s = "rand(100)"
     expr_ast = zen_custom_expr_parse(func_call_s)
