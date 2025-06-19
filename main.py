@@ -12,8 +12,8 @@ async def fccd2():
     pass
 
 
-@udf
-async def fccd3():
+@udf()
+async def fccd3(*args, **kwargs):
     pass
 
 
@@ -27,7 +27,7 @@ async def fccd3():
     return_info={"ipsegment": FuncValue(field_name="output_time", field_type="string", defaults="", comments="output_time")}
         
 )
-def adjust_time(*args, **kwargs):
+async def adjust_time(*args, **kwargs):
     pass
 
 
