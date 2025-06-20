@@ -4,11 +4,14 @@ from typing import Any, Optional, TypedDict, Literal, TypeAlias, Union
 import logging
 import json
 from pathlib import Path
+from pprint import pprint, pformat
 import asyncio
 import zen
-from zen import EvaluateResponse, ZenDecision
+from zen import ZenDecision
+# from zen import EvaluateResponse
 logger = logging.getLogger(__name__)
 print(zen.ZenEngine)
+EvaluateResponse = {}
 
 # class ZenEngine:
 #     def __init__(self, options: Optional[dict] = None) -> None: ...
@@ -23,12 +26,26 @@ print(zen.ZenEngine)
 
 #     def get_decision(self, key: str) -> ZenDecision: ...
 
+
+async def custom_async_handler(request):
+    # p1 = request.get_field("prop1")
+    # await asyncio.sleep(0.1)
+    print("request:", request)
+    print("request attrs:", dir(request))
+    return {
+        "output": {"sum": 112}
+    }
+
+
 class zenRule:
     def __init__(self, options: Optional[dict] = None) -> None: 
         # options 主要有 loader 和 custom_hander 两个回调函数.
         # self.options_cache = {}
         # self.options_dict = options_dict
-        self.options = options
+        if options:
+            self.options = options
+        else: # custom_async_handler self.custom_handler_v2
+            self.options = {"customHandler": self.custom_handler_v2, "loader": self.loader}
         # {"customHandler": self.custom_handler}
         self.engine = zen.ZenEngine(self.options)
         # decision 和 自定义节点中的 meta 信息是否需要包装在一个实例中???
@@ -37,9 +54,28 @@ class zenRule:
         self.udf_manager = {}
         self.call_udf = lambda x: x
 
+    def loader(self, key):
+        """
+            loader 如果 loader 是异步函数, 那么同步的 get_decision 会有问题.
+            除非我们自己实现 zenRule 的 get_decision, 而不是去调用 zenEngine的 get_decision
+            加载规则还是让客户自己选择实现, 然后调用 create_decision_with_cache_key 缓存下来即可.
+            暂时loader选择使用同步函数.
+            todo: 考虑是否需要异步.
+        """
+        basedir = Path(__file__).parent
+        with open(basedir / "custom" / key, "r") as f:
+            print("graph json:", basedir / "custom" / key)
+            return f.read()
+
     def create_decision(self, content) -> ZenDecision:
         content_ = self._parse_graph_nodes(content)
         return self.engine.create_decision(content_)
+
+    def create_decision_with_cache_key(self, key, content) -> ZenDecision:
+        content_ = self._parse_graph_nodes(content)
+        zendecision =  self.engine.create_decision(content_)
+        self.decision_cache[key] = zendecision
+        return zendecision
 
     def get_decision(self, key) -> ZenDecision:
         zendecision = self.decision_cache.get(key, None)
@@ -91,9 +127,10 @@ class zenRule:
             env = {
                 "node_id": request.node["id"],  ## 隔离 graph 中的节点
                 "func_id": item["id"],  ## 隔离每一个计算逻辑.
-                "meta": request.node["config"].get("meta", {})
+                "meta": request.node["config"].get("meta", {}),
+                **vars2value,
             }
-            env.update(vars2value)
+            # env.update(vars2value)
             bar.append((item["key"], funcname, env))
         results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2], **kwargs) for _ in bar])
         for key, result in zip([_[0] for _ in bar], results):
@@ -107,10 +144,11 @@ class zenRule:
         """
             重新设计自定义函数调用逻辑, 最好实现兼容 custom_handler_v1 的逻辑.
         """
+        # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         if not expr_asts:  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
             return await self.custom_handler_v1(request, **kwargs)
-        trans_func = lambda x: zen.evaluate_expression(x, request.input)
+        # trans_func = lambda x: zen.evaluate_expression(x, request.input)
         func_args_eval = lambda x: zen.evaluate_expression(x, request.input)
         res = {}
         bar = []
@@ -118,37 +156,33 @@ class zenRule:
             id  = item["id"]
             key = item["key"]
             v   = item["value"]  # ast for functions eval orders.
-            for func in v:
+            for func in v:  # 执行一个嵌套函数表达式.
+                ### 下列代码需要封装为一个执行引擎.
                 if func["ns"] == "udf":
-                    env = {
-                        "node_id": request.node["id"],  ## 隔离 graph 中的节点
-                        "func_id": item["id"],  ## 隔离每一个计算逻辑.
-                        "meta": request.node["config"].get("meta", {})
-                    }
-                    # [udf_manager(_[1], *_[2], **_[2], **kwargs) for _ in bar]
-                    
-                    fl = udf_manager(func["name"], )
+                    print("udf expression:")
+                    pprint(func)
+                    # func_variables = {k: v for k, v in item["arg_exprs"].items()}
+                    # vars2value = {k: func_args_eval(v) for k, v in func_variables.items()}
+                    # env = {
+                    #     "node_id": request.node["id"],  ## 隔离 graph 中的节点
+                    #     "func_id": item["id"],  ## 隔离每一个计算逻辑.
+                    #     "meta": request.node["config"].get("meta", {}),
+                    #     **vars2value,
+                    # }
+                    # # [udf_manager(_[1], *_[2], **_[2], **kwargs) for _ in bar]
+                    # from udf_manager import udf_manager as udf_engine
+                    # coro_func = udf_engine(func["name"], **env)
                     pass
                 elif func["ns"] == "": # 默认使用 zen 表达式.
-                    pass
+                    print("zen expression:")
+                    pprint(func)
                 else:
                     raise RuntimeError(f'自定义函数{func["name"]}表达式不支持')
 
-            funcmeta = item["funcmeta"]
-            funcname = funcmeta["name"]
-            func_variables = {k: v for k, v in item["arg_exprs"].items()}
-            vars2value = {k: trans_func(v) for k, v in func_variables.items()}
-            env = {
-                "node_id": request.node["id"],  ## 隔离 graph 中的节点
-                "func_id": item["id"],  ## 隔离每一个计算逻辑.
-                "meta": request.node["config"].get("meta", {})
-            }
-            env.update(vars2value)
-            bar.append((item["key"], funcname, env))
-        results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2], **kwargs) for _ in bar])
-        for key, result in zip([_[0] for _ in bar], results):
-            res[key] = result
-        res.update({k: v for k, v in request.input.items() if k != "$nodes"})
+
+        # res.update({k: v for k, v in request.input.items() if k != "$nodes"})
+        expr_value = 123
+        res = {"expr_id": expr_value}
         return {
             "output": res
         }

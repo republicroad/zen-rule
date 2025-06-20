@@ -83,13 +83,14 @@ class UDFManager:
                 comments = f'{name}:{arg_type}'
                 arguments.append(FuncArg(name, arg_type, defaults, comments))
 
-        # Use provided return_info or default to a simple return value
-        if return_info:
-            return_values = {k: v for k, v in return_info.items()}
-        else:
-            return_values = {
-                "return_value": FuncValue("return", "string", "", "Function return value")
-            }
+        print("return_info:", return_info)
+        # # Use provided return_info or default to a simple return value
+        # if return_info:
+        #     return_values = {k: v for k, v in return_info.items()}
+        # else:
+        #     return_values = {
+        #         "return_value": FuncValue("return", "string", "", "Function return value")
+        #     }
 
         self.functions[func.__name__] = {
             "func": func,
@@ -98,7 +99,7 @@ class UDFManager:
             "arguments": [arg.to_dict() for arg in arguments],
             # 以后应该改成这个配置
             # "return_values": {k: v.to_dict() for k, v in return_values.items()},
-            "return_values": {k: v.to_dict()['defaults'] for k, v in return_values.items()},
+            "return_values": {},  # {k: v.to_dict()['defaults'] for k, v in return_values.items()},
             "comments": comments or func.__doc__
         }
 

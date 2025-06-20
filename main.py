@@ -59,3 +59,16 @@ def rand(low: int, high: int):  # 故意和 zen expression rand函数名字一�
 
 
 pprint(udf_manager.get_udf_info())
+
+
+import asyncio
+from src.zen_rule import zenRule
+
+async def test_zenrule():
+    zr = zenRule()
+    result = await zr.async_evaluate("custom_v3.json", {"input": 7})
+    print("zen rule result:", result)
+
+
+if __name__ == "__main__":
+    asyncio.run(test_zenrule())

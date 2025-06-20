@@ -12,7 +12,29 @@
             "type": "expression"
           }
         ],
-        "rules": []
+        "rules": [],
+        "inputs": [
+          {
+            "id": "eb45ea8a-96a7-4e1b-be2b-079b1d45002a",
+            "key": "a",
+            "type": "string",
+            "value": "aaa"
+          },
+          {
+            "id": "e6848786-7c67-4332-a17c-10230b472f68",
+            "key": "b",
+            "type": "number",
+            "value": 1,
+            "desc": ""
+          },
+          {
+            "id": "1ac3295f-c774-4db4-bfbd-ad0fbb2478fa",
+            "key": "c",
+            "type": "datetime",
+            "value": "2025-06-20 18:09:16",
+            "desc": ""
+          }
+        ]
       },
       "id": "77011fbe-5fc7-4fe4-8939-2c888478e777",
       "position": {
@@ -41,7 +63,7 @@
           },
           "inputs": [
             {
-              "id": "e6c88d63-cb32-4259-a5df-32d64d30d5f6",
+              "id": "2484466c-c3c0-4e93-adaa-a008485ac1d9",
               "key": "ip_count",
               "type": "function",
               "arg_exprs": {
