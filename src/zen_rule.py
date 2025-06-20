@@ -107,11 +107,33 @@ class zenRule:
         """
             重新设计自定义函数调用逻辑, 最好实现兼容 custom_handler_v1 的逻辑.
         """
-        funcs = request.node["config"].get("inputs", [])
+        expr_asts = request.node["config"].get("expr_asts", [])
+        if not expr_asts:  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
+            return await self.custom_handler_v1(request, **kwargs)
         trans_func = lambda x: zen.evaluate_expression(x, request.input)
+        func_args_eval = lambda x: zen.evaluate_expression(x, request.input)
         res = {}
         bar = []
-        for item in funcs:
+        for item in expr_asts:
+            id  = item["id"]
+            key = item["key"]
+            v   = item["value"]  # ast for functions eval orders.
+            for func in v:
+                if func["ns"] == "udf":
+                    env = {
+                        "node_id": request.node["id"],  ## 隔离 graph 中的节点
+                        "func_id": item["id"],  ## 隔离每一个计算逻辑.
+                        "meta": request.node["config"].get("meta", {})
+                    }
+                    # [udf_manager(_[1], *_[2], **_[2], **kwargs) for _ in bar]
+                    
+                    fl = udf_manager(func["name"], )
+                    pass
+                elif func["ns"] == "": # 默认使用 zen 表达式.
+                    pass
+                else:
+                    raise RuntimeError(f'自定义函数{func["name"]}表达式不支持')
+
             funcmeta = item["funcmeta"]
             funcname = funcmeta["name"]
             func_variables = {k: v for k, v in item["arg_exprs"].items()}

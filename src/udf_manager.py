@@ -35,18 +35,34 @@ class FuncValue:
             "comments": self.comments,
         }
 
+class FuncRet:
+    def __init__(self, field_type: str, examples: Any, comments: str):
+        self.field_type = field_type
+        self.examples = examples
+        self.comments = comments
+
+    def to_dict(self):
+        return {
+            "field_type": self.field_type,
+            "examples": self.examples,
+            "comments": self.comments,
+        }
+
+
 # UDF Manager class to manage the registered UDFs
 class UDFManager:
+    # 之后再考虑是否支持 zen expression 的混用了.
     def __init__(self):
         self.functions = {}
         self.param_annotation = {
             str: "string",
-            dict: "json",
-            list: "json",
-            tuple: "json",
+            dict: "object",  # json
+            list: "array",
+            tuple: "array",
             int: "number",
             float: "number",
         }
+        self.default_type = "Any"
 
     def register_function(self, func, comments=None, args_info=None, return_info=None):
         sig = signature(func)
@@ -61,7 +77,7 @@ class UDFManager:
             logger.warning(f"sig.parameters items(): {pformat(sig.parameters.items())}")
             for name, param in sig.parameters.items():
                 # arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
-                arg_type = self.param_annotation.get(param.annotation, "Any")
+                arg_type = self.param_annotation.get(param.annotation, self.default_type)
                 defaults = '' if param.default == Parameter.empty else param.default
                 # comments = f'{name} parameter'
                 comments = f'{name}:{arg_type}'
@@ -99,6 +115,9 @@ class UDFManager:
         ]
 
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
+        """
+            v2 spec
+        """
         if udf_name in self.functions:
       
             func = self.functions[udf_name]["func"]
