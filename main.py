@@ -6,10 +6,10 @@ from src.custom.udf_manager import udf_manager, udf, FuncArg, FuncValue, FuncRet
 
 
 import asyncio
-from src.zen_rule import zenRule
+from src.zen_rule import ZenRule
 
 async def test_zenrule_custom_v2():
-    zr = zenRule()
+    zr = ZenRule()
     result = await zr.async_evaluate("custom_v2.json", {"input": 7, "myvar": 15})
     print("zen rule custom_v2 result:", result)
 

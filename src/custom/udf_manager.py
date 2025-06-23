@@ -73,8 +73,8 @@ class UDFManager:
             for info in args_info:
                 arguments.append(info)
         else:
-            logger.warning(f"sig.parameters: {sig.parameters}")
-            logger.warning(f"sig.parameters items(): {pformat(sig.parameters.items())}")
+            logger.debug(f"sig.parameters: {sig.parameters}")
+            logger.debug(f"sig.parameters items(): {pformat(sig.parameters.items())}")
             for name, param in sig.parameters.items():
                 # arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
                 arg_type = self.param_annotation.get(param.annotation, self.default_type)
@@ -83,7 +83,7 @@ class UDFManager:
                 comments = f'{name}:{arg_type}'
                 arguments.append(FuncArg(name, arg_type, defaults, comments))
 
-        print("return_info:", return_info)
+        logger.debug(f"return_info:{return_info}")
         # # Use provided return_info or default to a simple return value
         # if return_info:
         #     return_values = {k: v for k, v in return_info.items()}
@@ -156,24 +156,21 @@ def udf(comments=None, args_info=None, return_info=None):
 
 @udf()
 def zoo(*args, **kwargs):
-    print("zoo")
-    print(" args:", args)
-    print(" kwargs:", kwargs)
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
     return "zoo value"
 
 
 @udf()
 def bar(*args, **kwargs):
-    print("bar")
-    print(" args:", args)
-    print(" kwargs:", kwargs)
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
     return "bar value"
 
 @udf()
 def bas(*args, **kwargs):
-    print("bas")
-    print(" args:", args)
-    print(" kwargs:", kwargs)
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
     return "bas value"
 
 @udf(
@@ -186,7 +183,25 @@ def bas(*args, **kwargs):
     return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
 )
 def foo(*args, **kwargs):
-    print("foo")
-    print(" args:", args)
-    print(" kwargs:", kwargs)
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
     return "foo value"
+
+
+@udf(
+    comments="group_distinct_1m_demo function",
+    args_info=[
+        FuncArg(arg_name="group", arg_type="string", defaults="", comments="var group"),
+        FuncArg(arg_name="distinct", arg_type="string", defaults="", comments="var distinct"),
+    ],
+    return_info=FuncRet(field_type="string", examples={}, comments="返回值示例, 字段解释")     
+)
+def group_distinct_1m_demo(*args, **kwargs):
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
+    return {
+            "function": "group_distinct_1m_demo",
+            "pv": 1,
+            "uv": 2,
+            "gpv": 3
+        }

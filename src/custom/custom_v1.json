@@ -50,7 +50,7 @@
                 "distinct": "user"
               },
               "funcmeta": {
-                "name": "group_distinct_1m",
+                "name": "group_distinct_1m_demo",
                 "arglength": 2,
                 "arguments": [
                   {

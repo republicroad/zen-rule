@@ -9,7 +9,7 @@ import asyncio
 import zen
 from zen import ZenDecision
 from .custom.udf_manager import udf_manager
-from .custom.func_engine_v2 import ast_exec
+from .custom.func_engine_v2 import ast_exec, zen_custom_expr_parse
 # from zen import EvaluateResponse
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ async def custom_async_handler(request):
     }
 
 
-class zenRule:
+class ZenRule:
     def __init__(self, options: Optional[dict] = None) -> None: 
         # options 主要有 loader 和 custom_hander 两个回调函数.
         # self.options_cache = {}
@@ -59,8 +59,6 @@ class zenRule:
         # decision 和 自定义节点中的 meta 信息是否需要包装在一个实例中???
         self.decision_cache = {}  # key -> zen decision instance
         self.meta = {}  # key -> rule meta dict 
-        self.udf_manager = {}
-        self.call_udf = lambda x: x
 
     def loader(self, key):
         """
@@ -84,23 +82,40 @@ class zenRule:
         """
             创建规则和修改规则都是使用此方法.
         """
-        content_ = self._parse_graph_nodes(content)
-        zendecision =  self.engine.create_decision(content_)
+        if self.decision_cache.get(key):
+            raise RuntimeError(f"rule key:{key} is existed, if confirm to overwrite this key,please use update_decision_with_cache_key")
+
+        zendecision = self.create_decision(content)
         self.decision_cache[key] = zendecision
         return zendecision
 
-    def delete_decision_with_cache_key(self, key) -> dict:
+    def update_decision_with_cache_key(self, key, content) -> ZenDecision:
+        """
+            创建规则和修改规则都是使用此方法.
+        """
+        if self.decision_cache.get(key):
+            zendecision = self.create_decision(content)
+            self.decision_cache[key] = zendecision
+        else:
+            raise RuntimeError(f"rule key:{key} is not existed, please use create_decision_with_cache_key")
+        return zendecision
+
+    def delete_decision_with_cache_key(self, key) -> None:
         """
             删除对应规则 decision 的缓存键.
         """
-        del self.decision_cache[key]
-        return {"status": True, "msg":f"{key} rule has been deleted."}
-
+        if self.decision_cache.get(key):
+            del self.decision_cache[key]
+        else:
+            raise RuntimeError(f"delete failed! rule key:{key} is not existed")
 
     def get_decision(self, key) -> ZenDecision:
         zendecision = self.decision_cache.get(key, None)
         if not zendecision:
-            zendecision = self.engine.get_decision(key)  # 会隐式调用 loader 函数.
+            # self.engine.get_decision
+            decision_content = self.loader(key)
+            zendecision = self.create_decision(decision_content)
+            # zendecision = self.engine.get_decision(key)  # 会隐式调用 loader 函数.
             self.decision_cache[key] = zendecision
             return zendecision
         else:
@@ -117,23 +132,33 @@ class zenRule:
         logger.debug(f"decision: {decision}")
         return decision.async_evaluate(ctx, options)
 
-    def _parse_graph_nodes(self, rule_graph):
+    def _parse_graph_nodes(self, graph_content):
+        rule_graph = json.loads(graph_content)
         ## 在 loader 和 create_decision 中隐式调用.
         ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
-        input_node_name = [i.get("name") for i in rule_graph['content']["nodes"] if i.get("type") == "inputNode"][0]
-        for node in rule_graph['content']["nodes"]:
+        input_node_name = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"][0]
+        for node in rule_graph["nodes"]:
             if node.get("type") == "customNode":
                 content = node.get("content", {})
                 config  = content.get("config", {})
                 meta = config.get("meta", {})
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
+
+                ### 2.将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
+                expr_asts = []
+                custom_expressions = node["content"]["config"].get("expressions")
+                if custom_expressions:
+                    for i in custom_expressions:
+                        item = {**i}
+                        item["value"] = zen_custom_expr_parse(i["value"])
+                        expr_asts.append(item)
+                    node["expr_asts"] = expr_asts
+
+                ### 3.将自定义节点格式v1转换为 v2 格式. todo.
             else:
                 meta = {}
-        
-        ### 2.将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
-
-        return json.dumps(rule_graph['content'])
+        return json.dumps(rule_graph)
 
     async def custom_handler_v1(self, request, **kwargs):
         funcs = request.node["config"].get("inputs", [])
@@ -157,6 +182,7 @@ class zenRule:
         for key, result in zip([_[0] for _ in bar], results):
             res[key] = result
         res.update({k: v for k, v in request.input.items() if k != "$nodes"})
+        logger.warning(f"custom v1 result:{res}")
         return {
             "output": res
         }
@@ -179,13 +205,8 @@ class zenRule:
             "meta": request.node["config"].get("meta", {}),
         }
         for item in expr_asts:
-            # id  = item["id"]
-            # key = item["key"]
-            # ast   = item["value"]  # ast for functions eval orders.
             # result = await ast_exec(item, request.input, context)
             # out_res[key] = result
-            # todo: 这里改为用 asyncio.gather 来实现并发执行多个函数表达式.
-            # 这样可以提高自定义节点的执行性能.
             coro_funcs.append(ast_exec(item["value"], request.input, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
