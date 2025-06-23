@@ -9,9 +9,10 @@ import asyncio
 import zen
 from zen import ZenDecision
 from .custom.udf_manager import udf_manager
+from .custom.func_engine_v2 import ast_exec
 # from zen import EvaluateResponse
 logger = logging.getLogger(__name__)
-print(zen.ZenEngine)
+
 EvaluateResponse = {}
 
 # class ZenEngine:
@@ -29,12 +30,16 @@ EvaluateResponse = {}
 
 
 async def custom_async_handler(request):
-    # p1 = request.get_field("prop1")
+    """
+        示例自定义节点处理函数.
+        todo: 是否需要包装一层异常捕获的逻辑.
+    """
+    # p1 = request.get_field("prop1")  # 没有prop1属性会报错.
     # await asyncio.sleep(0.1)
-    print("request:", request)
-    print("request attrs:", dir(request))
+    logger.debug(f"request:{request}")
+    logger.debug(f"request attrs:{dir(request)}")
     result = zen.evaluate_expression('rand(100)', request.input)
-    print("return value:", result)
+    logger.debug(f"return value:{result}")
     return {
         "output": {"sum": 112}
     }
@@ -63,6 +68,7 @@ class zenRule:
             除非我们自己实现 zenRule 的 get_decision, 而不是去调用 zenEngine的 get_decision
             加载规则还是让客户自己选择实现, 然后调用 create_decision_with_cache_key 缓存下来即可.
             暂时loader选择使用同步函数.
+            此方法需要被覆写.
             todo: 考虑是否需要异步.
         """
         basedir = Path(__file__).parent
@@ -75,10 +81,21 @@ class zenRule:
         return self.engine.create_decision(content_)
 
     def create_decision_with_cache_key(self, key, content) -> ZenDecision:
+        """
+            创建规则和修改规则都是使用此方法.
+        """
         content_ = self._parse_graph_nodes(content)
         zendecision =  self.engine.create_decision(content_)
         self.decision_cache[key] = zendecision
         return zendecision
+
+    def delete_decision_with_cache_key(self, key) -> dict:
+        """
+            删除对应规则 decision 的缓存键.
+        """
+        del self.decision_cache[key]
+        return {"status": True, "msg":f"{key} rule has been deleted."}
+
 
     def get_decision(self, key) -> ZenDecision:
         zendecision = self.decision_cache.get(key, None)
@@ -146,86 +163,36 @@ class zenRule:
 
     async def custom_handler_v2(self, request):
         """
-            重新设计自定义函数调用逻辑, 最好实现兼容 custom_handler_v1 的逻辑.
+            v2 支持字面量的自定义函数的表达式, 和普通函数类似, 也支持函数表达式的嵌套调用.
+            参考 src/custom/custom_v2.json 中的示例.
+            兼容 custom_handler_v1 元数据定义和执行逻辑.
         """
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         if not expr_asts:  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
             return await self.custom_handler_v1(request)
 
-        coro_l = []
-        out_res = {}
+        coro_funcs = []
+        results = {}
         context = {
             "node_id": request.node["id"],  ## 隔离 graph 中的节点
             "meta": request.node["config"].get("meta", {}),
         }
         for item in expr_asts:
-            id  = item["id"]
-            key = item["key"]
+            # id  = item["id"]
+            # key = item["key"]
             # ast   = item["value"]  # ast for functions eval orders.
             # result = await ast_exec(item, request.input, context)
             # out_res[key] = result
             # todo: 这里改为用 asyncio.gather 来实现并发执行多个函数表达式.
             # 这样可以提高自定义节点的执行性能.
-            coro_l.append(ast_exec(item, request.input, context))
-        results = await asyncio.gather(*coro_l)
-        out_res = {k["key"]: v for k, v in zip(expr_asts, results)}
-        logger.warning(out_res)
+            coro_funcs.append(ast_exec(item["value"], request.input, context))
+        _results = await asyncio.gather(*coro_funcs)
+        results = {k["key"]: v for k, v in zip(expr_asts, _results)}
+        logger.debug(results)
         return {
-            "output": out_res
+            "output": results
         }
-
-
-args_expr_eval = lambda x, input: zen.evaluate_expression(x, input)
-
-
-async def ast_exec(expr_ast, args_input, context={}):
-    id  = expr_ast["id"]
-    key = expr_ast["key"]
-    ast   = expr_ast["value"]  # ast for functions eval orders.
-    env = {}  # ast 求值时, 函数值暂存在此字典, 用于嵌套函数传参.
-    # logger.debug(f"{pformat(ast)}")
-    for func in ast:  # 执行一个嵌套函数表达式.
-        ### 下列代码需要封装为一个执行引擎.
-        logger.debug(f"current env: {env}")
-        if func["ns"] == "udf":
-            # logger.warning(f"udf expression: {func}")
-            func_name = func["name"]
-            args = []
-            # 变量类型需要使用 zen expression 求值.
-            for arg, t in func["args"]:
-                if t == "func_value":
-                    args.append(env.get(arg["id"]))
-                elif t == "var":
-                    args.append(args_expr_eval(arg, args_input))
-                elif t == "string":
-                    args.append(args_expr_eval(arg, args_input))
-                else:  # ["int", "float"]
-                    args.append(arg)
-           
-            kwargs = {
-                **context,
-                "func_id": func["id"],
-            }
-            result = await udf_manager(func["name"], *args, **kwargs)
-            logger.warning(f"{func_name}({args}) ->: {result}")
-            env[func["id"]] = result
-        elif func["ns"] == "":
-            func_name = func["name"]
-            args = func["args"]
-            # 需要判断参数是嵌套函数的情况.
-            args = [env.get(func["id"]) if t == "func_value" else str(arg) for arg, t in args]
-            # 要判断 args 中是否还嵌套函数.
-            func_call_args = ",".join(args)
-            zen_expr = f"{func_name}({func_call_args})"
-            result = zen.evaluate_expression(zen_expr, args_input)
-            logger.warning(f"{zen_expr} ->: {result}")
-            # 默认使用 zen 表达式.
-            env[func["id"]] = result
-        else:
-            raise RuntimeError(f'自定义函数{func["name"]}表达式不支持')
-
-    return result
 
     # async def rule_exec(self, data_dict, rule_id, trace, db, **kwargs):
     #     if rule_id in self.cache_set:
@@ -237,15 +204,3 @@ async def ast_exec(expr_ast, args_input, context={}):
     #     logger.debug('rule exec info: rule_id:{}, rule_manager:{} ,decision:{}'.format(rule_id, self, decision))
     #     result = await decision.async_evaluate(data_dict['context'], {"trace": trace})
     #     return result
-
-    # def update_rule_manager(self, rule_id):
-    #     cache_dict = {
-    #         'meta': self.meta,
-    #         'engine': self.engine,
-    #         'decision': self.decision
-    #     }
-    #     self.cache_set[rule_id] = cache_dict
-
-    # def delete_rule_manager(self, rule_id):
-    #     if rule_id in self.cache_set:
-    #         del self.cache_set[rule_id]

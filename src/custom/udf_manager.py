@@ -176,22 +176,17 @@ def bas(*args, **kwargs):
     print(" kwargs:", kwargs)
     return "bas value"
 
-@udf()
+@udf(
+    comments="test udf foo",
+    args_info=[
+        FuncArg(arg_name="a", arg_type="string", defaults="", comments="var a"),
+        FuncArg(arg_name="b", arg_type="string", defaults="", comments="var b"),
+        FuncArg(arg_name="c", arg_type="string", defaults="", comments="var c"),
+    ],
+    return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
+)
 def foo(*args, **kwargs):
     print("foo")
     print(" args:", args)
     print(" kwargs:", kwargs)
     return "foo value"
-
-
-
-# Types
-# type('hello');;'string'
-# type(123);;'number'
-# type(true);;'bool'
-# type(null);;'null'
-# type([1, 2, 3]);;'array'
-# type({customer: { firstName: "John", lastName: "Doe" }});;'object'
-#
-# In [143]: zen.evaluate_expression('type({customer: { firstName: "John", lastName: "Doe" }})', {})
-# Out[143]: 'object'

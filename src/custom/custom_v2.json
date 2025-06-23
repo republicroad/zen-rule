@@ -2,103 +2,73 @@
   "contentType": "application/vnd.gorules.decision",
   "nodes": [
     {
-      "name": "myRequest",
-      "content": {
-        "outputs": [
-          {
-            "field": "output",
-            "id": "e15ca95a-6d07-4fdd-a226-2f5c5f61836a",
-            "name": "Output",
-            "type": "expression"
-          }
-        ],
-        "rules": []
-      },
-      "id": "77011fbe-5fc7-4fe4-8939-2c888478e777",
+      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "inputNode",
       "position": {
-        "x": -120,
-        "y": 135
+        "x": 180,
+        "y": 240
       },
-      "type": "inputNode"
+      "name": "Request"
     },
     {
-      "name": "myResponse",
-      "id": "9fcbcbeb-70ce-4af3-9d3f-3c63061df78b",
+      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "customNode",
       "position": {
-        "x": 360,
-        "y": 165
+        "x": 470,
+        "y": 240
       },
-      "type": "outputNode"
-    },
-    {
-      "name": "customNode_UDF",
+      "name": "customNode1",
       "content": {
-        "kind": "UDF",
+        "kind": "sum",
         "config": {
+          "version": "v2",
           "meta": {
-            "user": "fb417c920bb142eabd6016a3520663b3",
-            "proj": "proj_c3e287a0925145f2"
+            "user": "wanghao@geetest.com",
+            "proj": "proj_id"
           },
-          "inputs": [
+          "prop1": "{{ a + 10 }}",
+          "passThrough": true,
+          "inputField": null,
+          "outputPath": null,
+          "expressions": [
             {
-              "id": "e6c88d63-cb32-4259-a5df-32d64d30d5f6",
-              "key": "ip_count",
-              "type": "function",
-              "arg_exprs": {
-                "mykey": "ip"
-              },
-              "funcmeta": {
-                "name": "rate_1h",
-                "arglength": 1,
-                "arguments": [
-                  {
-                    "arg_name": "mykey",
-                    "arg_type": "string",
-                    "defaults": "",
-                    "comments": "统计字段或者表达式"
-                  }
-                ],
-                "return_values": {
-                  "v": "",
-                  "counter": "",
-                  "idle": "",
-                  "timestamp": ""
-                },
-                "comments": "最近 1hour 的统计函数"
-              }
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "result",
+              "value": "foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())"
+            }
+          ],
+          "expr_asts": [
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "result",
+              "value": [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, {"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, {"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, {"name": "foo", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, "func_value"], [{"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, "func_value"]], "ns": "", "id": "0c509d4654ef443eb621d791d3ffcaa1"}]
             }
           ]
-        },
-        "outputs": [
-          {
-            "field": "output",
-            "id": "eb6a94cb-25a7-4537-943f-153dbfa75010",
-            "name": "Output",
-            "type": "expression"
-          }
-        ],
-        "rules": []
-      },
-      "id": "dbf79a70-9a0e-42f9-b004-209ae634f657",
+        }
+      }
+    },
+    {
+      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
+      "type": "outputNode",
       "position": {
-        "x": 130,
-        "y": 70
+        "x": 780,
+        "y": 240
       },
-      "type": "customNode"
+      "name": "Response"
     }
   ],
   "edges": [
     {
-      "id": "dede3a5d-8da7-4284-a3e5-59eec6899891",
-      "sourceId": "77011fbe-5fc7-4fe4-8939-2c888478e777",
+      "id": "05740fa7-3755-4756-b85e-bc1af2f6773b",
+      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
       "type": "edge",
-      "targetId": "dbf79a70-9a0e-42f9-b004-209ae634f657"
+      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
     },
     {
-      "id": "5016a34d-2130-4b37-a89f-02cd2d175090",
-      "sourceId": "dbf79a70-9a0e-42f9-b004-209ae634f657",
+      "id": "5d89c1d6-e894-4e8a-bd13-22368c2a6bc7",
+      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
       "type": "edge",
-      "targetId": "9fcbcbeb-70ce-4af3-9d3f-3c63061df78b"
+      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
     }
   ]
 }

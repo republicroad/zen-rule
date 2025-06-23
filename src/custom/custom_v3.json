@@ -21,6 +21,7 @@
       "content": {
         "kind": "sum",
         "config": {
+          "version": "v3",
           "meta": {
             "user": "wanghao@geetest.com",
             "proj": "proj_id"
