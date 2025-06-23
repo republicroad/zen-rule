@@ -8,6 +8,7 @@ from pprint import pprint, pformat
 import asyncio
 import zen
 from zen import ZenDecision
+from .custom.udf_manager import udf_manager
 # from zen import EvaluateResponse
 logger = logging.getLogger(__name__)
 print(zen.ZenEngine)
@@ -32,6 +33,8 @@ async def custom_async_handler(request):
     # await asyncio.sleep(0.1)
     print("request:", request)
     print("request attrs:", dir(request))
+    result = zen.evaluate_expression('rand(100)', request.input)
+    print("return value:", result)
     return {
         "output": {"sum": 112}
     }
@@ -63,8 +66,8 @@ class zenRule:
             todo: 考虑是否需要异步.
         """
         basedir = Path(__file__).parent
-        with open(basedir / "custom" / key, "r") as f:
-            print("graph json:", basedir / "custom" / key)
+        with open(basedir / "custom" / key, "r", encoding="utf8") as f:
+            logger.warning(f"graph json: %s", basedir / "custom" / key)
             return f.read()
 
     def create_decision(self, content) -> ZenDecision:
@@ -94,6 +97,7 @@ class zenRule:
     def async_evaluate(self, key, ctx, options=None) -> Awaitable[EvaluateResponse]:
         # return self.engine.async_evaluate(key, ctx, options)  # engine.async_evaluate 会隐式调用 loader 函数.
         decision = self.get_decision(key)
+        logger.debug(f"decision: {decision}")
         return decision.async_evaluate(ctx, options)
 
     def _parse_graph_nodes(self, rule_graph):
@@ -140,52 +144,88 @@ class zenRule:
             "output": res
         }
 
-    async def custom_handler_v2(self, request, **kwargs):
+    async def custom_handler_v2(self, request):
         """
             重新设计自定义函数调用逻辑, 最好实现兼容 custom_handler_v1 的逻辑.
         """
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         if not expr_asts:  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
-            return await self.custom_handler_v1(request, **kwargs)
-        # trans_func = lambda x: zen.evaluate_expression(x, request.input)
-        func_args_eval = lambda x: zen.evaluate_expression(x, request.input)
-        res = {}
-        bar = []
+            return await self.custom_handler_v1(request)
+
+        coro_l = []
+        out_res = {}
+        context = {
+            "node_id": request.node["id"],  ## 隔离 graph 中的节点
+            "meta": request.node["config"].get("meta", {}),
+        }
         for item in expr_asts:
             id  = item["id"]
             key = item["key"]
-            v   = item["value"]  # ast for functions eval orders.
-            for func in v:  # 执行一个嵌套函数表达式.
-                ### 下列代码需要封装为一个执行引擎.
-                if func["ns"] == "udf":
-                    print("udf expression:")
-                    pprint(func)
-                    # func_variables = {k: v for k, v in item["arg_exprs"].items()}
-                    # vars2value = {k: func_args_eval(v) for k, v in func_variables.items()}
-                    # env = {
-                    #     "node_id": request.node["id"],  ## 隔离 graph 中的节点
-                    #     "func_id": item["id"],  ## 隔离每一个计算逻辑.
-                    #     "meta": request.node["config"].get("meta", {}),
-                    #     **vars2value,
-                    # }
-                    # # [udf_manager(_[1], *_[2], **_[2], **kwargs) for _ in bar]
-                    # from udf_manager import udf_manager as udf_engine
-                    # coro_func = udf_engine(func["name"], **env)
-                    pass
-                elif func["ns"] == "": # 默认使用 zen 表达式.
-                    print("zen expression:")
-                    pprint(func)
-                else:
-                    raise RuntimeError(f'自定义函数{func["name"]}表达式不支持')
-
-
-        # res.update({k: v for k, v in request.input.items() if k != "$nodes"})
-        expr_value = 123
-        res = {"expr_id": expr_value}
+            # ast   = item["value"]  # ast for functions eval orders.
+            # result = await ast_exec(item, request.input, context)
+            # out_res[key] = result
+            # todo: 这里改为用 asyncio.gather 来实现并发执行多个函数表达式.
+            # 这样可以提高自定义节点的执行性能.
+            coro_l.append(ast_exec(item, request.input, context))
+        results = await asyncio.gather(*coro_l)
+        out_res = {k["key"]: v for k, v in zip(expr_asts, results)}
+        logger.warning(out_res)
         return {
-            "output": res
+            "output": out_res
         }
+
+
+args_expr_eval = lambda x, input: zen.evaluate_expression(x, input)
+
+
+async def ast_exec(expr_ast, args_input, context={}):
+    id  = expr_ast["id"]
+    key = expr_ast["key"]
+    ast   = expr_ast["value"]  # ast for functions eval orders.
+    env = {}  # ast 求值时, 函数值暂存在此字典, 用于嵌套函数传参.
+    # logger.debug(f"{pformat(ast)}")
+    for func in ast:  # 执行一个嵌套函数表达式.
+        ### 下列代码需要封装为一个执行引擎.
+        logger.debug(f"current env: {env}")
+        if func["ns"] == "udf":
+            # logger.warning(f"udf expression: {func}")
+            func_name = func["name"]
+            args = []
+            # 变量类型需要使用 zen expression 求值.
+            for arg, t in func["args"]:
+                if t == "func_value":
+                    args.append(env.get(arg["id"]))
+                elif t == "var":
+                    args.append(args_expr_eval(arg, args_input))
+                elif t == "string":
+                    args.append(args_expr_eval(arg, args_input))
+                else:  # ["int", "float"]
+                    args.append(arg)
+           
+            kwargs = {
+                **context,
+                "func_id": func["id"],
+            }
+            result = await udf_manager(func["name"], *args, **kwargs)
+            logger.warning(f"{func_name}({args}) ->: {result}")
+            env[func["id"]] = result
+        elif func["ns"] == "":
+            func_name = func["name"]
+            args = func["args"]
+            # 需要判断参数是嵌套函数的情况.
+            args = [env.get(func["id"]) if t == "func_value" else str(arg) for arg, t in args]
+            # 要判断 args 中是否还嵌套函数.
+            func_call_args = ",".join(args)
+            zen_expr = f"{func_name}({func_call_args})"
+            result = zen.evaluate_expression(zen_expr, args_input)
+            logger.warning(f"{zen_expr} ->: {result}")
+            # 默认使用 zen 表达式.
+            env[func["id"]] = result
+        else:
+            raise RuntimeError(f'自定义函数{func["name"]}表达式不支持')
+
+    return result
 
     # async def rule_exec(self, data_dict, rule_id, trace, db, **kwargs):
     #     if rule_id in self.cache_set:

@@ -1,10 +1,13 @@
 
+# func_engine 此模块要改名为 udf_engine 或者是 func_engine.
+# 此模块完成函数解析
 ## 完成 foo(bar(2  , zoo(3,6),'a'), bas())
 
 # https://tree-sitter.github.io/tree-sitter/using-parsers/1-getting-started.html
 # https://stackoverflow.com/questions/67656240/parsing-a-function-call-using-python-regex
 # https://regex101.com/r/Umsdg0/1
 import string
+import uuid
 from pprint import pprint
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
@@ -14,14 +17,23 @@ FUNC_LEFT_BOUNDRY = "("
 FUNC_RIGHT_BOUNDRY = ")"
 ARGS_SPLIT = ","
 
+
 # https://stackoverflow.com/a/75291788
 # https://stackoverflow.com/a/76017464
+
+@dataclass
+class ArgItem:
+    """Function Argument items"""
+    name: str
+    arg_type: str
+
+
 @dataclass
 class FuncItem:
     """Function items"""
     name: str
     args: list
-    level: int
+    level: int  # 这些考虑作为调试信息, 是否有必要每次都展示函数嵌套层级.
     hierarchy: list
 
     def __post_init__(self):
@@ -30,6 +42,39 @@ class FuncItem:
         else:
             self.ns = ""  # self.name 保持不变
         self.hierarchy  = [i.replace("udf:", "") for i in self.hierarchy]
+        self.args = self.args_type_parse(self.args)
+        self.id = uuid.uuid4().hex
+
+    def args_type_parse(self, args):
+        # 对 c 进行字符串, 数字常量(int, float) 和变量的区分.
+        final_args = []
+        arg_types = []
+        for arg in args:
+            if isinstance(arg, str):
+                if (arg.startswith("'") and arg.endswith("'")) or (arg.startswith('"') and arg.endswith('"')):
+                    # 常量字符串
+                    final_args.append(arg)
+                    arg_types.append("string")
+                elif arg.isdigit():
+                    # 常量整型数
+                    arg = int(arg)
+                    final_args.append(arg)
+                    arg_types.append("int")
+                elif arg.find(".") > 0 and arg.replace(".", "").isdecimal():
+                    # 常量浮点数
+                    arg = float(arg)
+                    final_args.append(arg)
+                    arg_types.append("float")
+                else:
+                    # 变量
+                    # 是否加参数的类型描述.
+                    final_args.append(arg)
+                    arg_types.append("var")
+            else:
+                final_args.append(arg)
+                arg_types.append("func_value")
+        l = [list(i) for i in zip(final_args, arg_types)]
+        return l
 
     @property
     def path(self):
@@ -41,9 +86,13 @@ class FuncItem:
                 **{
                     "path": self.path,
                     "ns": self.ns,
+                    "id": self.id,
+                    # "arg_types": self.arg_types,
                 }
             }
         del d["hierarchy"]
+        del d["level"]
+        del d["path"]
         return d
 
 
@@ -138,6 +187,7 @@ def func_ast_parser(tokens):
 
 
 def ast_exec(ast):
+    # 将函数执行顺序打印出来.
     for func in ast:
         pass
 
@@ -155,11 +205,15 @@ def zen_custom_expr_parse(expr):
 
 if __name__ == "__main__":
     # "udf:foo(udf:bar(2  , rand(100),'a'), bas())"  "udf:foo(udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
-    func_call_s = "udf:foo(myvar,udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
+    func_call_s = "udf:foo(myvar,udf:bar(rand(100), udf:zoo('fccdjny',6, 3.14),'a'), udf:bas())"
     # func_call_s = "foo(bar( 2,'a'), bas())"
     # func_call_s = "rand(100)"
+    func_call_s = "map([0..3], #)"
+    func_call_s = "map(['a', 'b', 'c'], # + '!')"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.
+    # func_call_s = '{customer: { firstName: "John", lastName: "Doe"}}'  # 增加对 json5 objects(结构)类型的解析. 这个表达式不是函数调用, 不会被解析.
+    # func_call_s = "map([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], #.id)"  # 增加对数组和objects类型的解析.
     expr_ast = zen_custom_expr_parse(func_call_s)
-    print("expr:   :", func_call_s)
+    print("expr    :", func_call_s)
     print("expr_ast:", expr_ast)
     pprint(expr_ast)
     import json

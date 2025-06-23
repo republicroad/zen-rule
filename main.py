@@ -2,7 +2,7 @@
 import random
 from pprint import pprint
 from pathlib import Path
-from src.udf_manager import udf_manager, udf, FuncArg, FuncValue, FuncRet
+from src.custom.udf_manager import udf_manager, udf, FuncArg, FuncValue, FuncRet
 
 
 @udf()
@@ -42,7 +42,7 @@ async def demofunc(*args, **kwargs):
     ],
     return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
 )
-def foo():
+def fooxxxx():
     pass
 
 
@@ -58,7 +58,7 @@ def rand(low: int, high: int):  # 故意和 zen expression rand函数名字一�
     return random.randint(low, high)
 
 
-pprint(udf_manager.get_udf_info())
+# pprint(udf_manager.get_udf_info())
 
 
 import asyncio
@@ -66,8 +66,11 @@ from src.zen_rule import zenRule
 
 async def test_zenrule():
     zr = zenRule()
-    result = await zr.async_evaluate("custom_v3.json", {"input": 7})
+    result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
     print("zen rule result:", result)
+
+    result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
+    print("zen rule result2:", result)
 
 
 if __name__ == "__main__":

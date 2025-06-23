@@ -161,3 +161,47 @@ foo(bar(2  , zoo(3,6),'a'), bas())
     }
 }
 ```
+
+#### custom node v2 function spec
+
+todo: 
+1. 参数表达式使用zen expression解析。需要解析 number, string, array, objects, null这五个类型.  
+2. 如果ast解析是一个连续的 zen 表达式函数嵌套, 那么将这几个表达式函数转化了 zen 表达式一起执行. 提高执行效率.
+3. 对自定义函数的命名空间进行配置化限定.
+4. 对自定义函数的参数进行映射和限制，如果没有提示参数的类型和注释，那么拒绝添加自定义函数.
+4. 对 custom node v1 的执行格式进行执行引擎上兼容.
+5. 对 custom node v1 的执行格式转化为 v2 版本的表达式函数.
+
+
+
+注意:
+zen-engine==0.24.2
+
+```python
+In [2]: zen.evaluate_expression('3.0', {})
+Out[2]: 3
+
+In [3]: zen.evaluate_expression('3.00000', {})
+Out[3]: 3
+
+In [4]: zen.evaluate_expression('3.000001', {})
+Out[4]: 3.000001
+```
+
+
+zen-engine==0.48.0
+
+```python
+In [2]: zen.evaluate_expression('3', {})
+Out[2]: 3.0
+
+In [3]: zen.evaluate_expression('3.0', {})
+Out[3]: 3.0
+
+In [4]: zen.evaluate_expression('3.00000', {})
+Out[4]: 3.0
+
+In [5]: zen.evaluate_expression('3.000001', {})
+Out[5]: 3.000001
+
+```

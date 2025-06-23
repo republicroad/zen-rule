@@ -118,6 +118,8 @@ class UDFManager:
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
         """
             v2 spec
+            执行器要函数解析放到一起, 在function_call_parse中实现解析器和执行器,
+            然后执行器调用真正的udf函数管理和执行器.
         """
         if udf_name in self.functions:
       
@@ -150,3 +152,46 @@ def udf(comments=None, args_info=None, return_info=None):
         udf_manager.register_function(func, comments, args_info, return_info)
         return func
     return decorator
+
+
+@udf()
+def zoo(*args, **kwargs):
+    print("zoo")
+    print(" args:", args)
+    print(" kwargs:", kwargs)
+    return "zoo value"
+
+
+@udf()
+def bar(*args, **kwargs):
+    print("bar")
+    print(" args:", args)
+    print(" kwargs:", kwargs)
+    return "bar value"
+
+@udf()
+def bas(*args, **kwargs):
+    print("bas")
+    print(" args:", args)
+    print(" kwargs:", kwargs)
+    return "bas value"
+
+@udf()
+def foo(*args, **kwargs):
+    print("foo")
+    print(" args:", args)
+    print(" kwargs:", kwargs)
+    return "foo value"
+
+
+
+# Types
+# type('hello');;'string'
+# type(123);;'number'
+# type(true);;'bool'
+# type(null);;'null'
+# type([1, 2, 3]);;'array'
+# type({customer: { firstName: "John", lastName: "Doe" }});;'object'
+#
+# In [143]: zen.evaluate_expression('type({customer: { firstName: "John", lastName: "Doe" }})', {})
+# Out[143]: 'object'
