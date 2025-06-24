@@ -264,13 +264,13 @@ def stack_token_lex(stack):
     # stop_chars = {FUNC_LEFT_BOUNDRY, FUNC_RIGHT_BOUNDRY, ARGS_SPLIT, ArrayT.Array_LEFT, ArrayT.Array_RIGHT}
     # stop_chars = {}
     l = []
-    logger.debug(f"lexer temp stack:{stack}")
+    # logger.debug(f"lexer temp stack:{stack}")
     while(stack):
         c = stack.pop()
         l.append(c)
     l.reverse()
     token = "".join(l)
-    # logger.debug(f"token:{token}")
+    # logger.debug(f"token: {token}")
     return token
 
 

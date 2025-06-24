@@ -24,12 +24,13 @@ args_expr_eval = lambda x, input: zen.evaluate_expression(x, input)
 
 async def ast_exec(expr_ast, args_input, context={}):
     func_value_context = {}  # ast 求值时, 函数值暂存在此字典, 用于嵌套函数传参.
-    # logger.debug(f"{pformat(ast)}")
+    # logger.debug(f"{pformat(expr_ast)}")
     for func in expr_ast:  # 执行一个嵌套函数表达式.
         ### 下列代码需要封装为一个执行引擎.
         logger.debug(f"current func_value_context: {func_value_context}")
         ### 目前只支持外部自定义函数调用. 不支持和 zen expression 的函数进行混合使用.
-        func_name = func["name"]  
+        func_name = func["name"]
+        # todo: 将 udf 中定义的函数中的参数定义顺序和和当前的 args 来做字典映射. 这样可以将所有的位置参数转化为关键字参数.
         args = FuncItem.args_eval(func["args"], func_value_context, args_input, args_expr_eval)
         kwargs = {
             **context,

@@ -51,6 +51,8 @@ class ZenRule:
         # self.options_cache = {}
         # self.options_dict = options_dict
         if options:
+            ### todo assert loader function 是同步函数.
+            ###      或者, 是否需要loader 函数.
             self.options = options
         else: # custom_async_handler self.custom_handler_v2
             self.options = {"customHandler": self.custom_handler_v2, "loader": self.loader}
@@ -76,6 +78,7 @@ class ZenRule:
 
     def create_decision(self, content) -> ZenDecision:
         content_ = self._parse_graph_nodes(content)
+        # logger.debug(f"after _parse_graph_nodes: {content_}")
         return self.engine.create_decision(content_)
 
     def create_decision_with_cache_key(self, key, content) -> ZenDecision:
@@ -129,6 +132,7 @@ class ZenRule:
     def async_evaluate(self, key, ctx, options=None) -> Awaitable[EvaluateResponse]:
         # return self.engine.async_evaluate(key, ctx, options)  # engine.async_evaluate 会隐式调用 loader 函数.
         decision = self.get_decision(key)
+        # decision = self.engine.get_decision(key)
         logger.debug(f"decision: {decision}")
         return decision.async_evaluate(ctx, options)
 
@@ -153,11 +157,12 @@ class ZenRule:
                         item = {**i}
                         item["value"] = zen_custom_expr_parse(i["value"])
                         expr_asts.append(item)
-                    node["expr_asts"] = expr_asts
+                    node["content"]["config"]["expr_asts"] = expr_asts
 
                 ### 3.将自定义节点格式v1转换为 v2 格式. todo.
             else:
                 meta = {}
+        # logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 
     async def custom_handler_v1(self, request, **kwargs):
@@ -193,6 +198,7 @@ class ZenRule:
             参考 src/custom/custom_v2.json 中的示例.
             兼容 custom_handler_v1 元数据定义和执行逻辑.
         """
+        # logger.debug(f"request.node:{request.node}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         if not expr_asts:  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
@@ -211,6 +217,7 @@ class ZenRule:
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
         logger.debug(results)
+
         return {
             "output": results
         }
