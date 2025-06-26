@@ -1,0 +1,20 @@
+[project]
+name = "zen-rule"
+version = "0.1.0"
+description = "zen-engine enrichment for custom node spec and cache ZenDecision objects for performance"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["zen-engine"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.workspace]
+members = ["zen-rule"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

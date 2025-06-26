@@ -1,28 +1,111 @@
 
 import logging
-import random
+import asyncio
 from pprint import pprint
 from pathlib import Path
-from src.custom.udf_manager import udf_manager, udf, FuncArg, FuncValue, FuncRet
+from zen_rule.custom.udf_manager import udf, FuncArg, FuncRet
+from zen_rule import ZenRule, ast_exec
 
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+@udf()
+def zoo(*args, **kwargs):
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
+    return "zoo value"
 
 
-import asyncio
-from src.zen_rule import ZenRule, ast_exec
+@udf()
+def bar(*args, **kwargs):
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
+    return "bar value"
 
-async def test_zenrule_custom_v2():
-    zr = ZenRule()
-    print(zr.engine.get_decision("custom_v2.json"))
-    print(zr.engine.get_decision("custom_v2.json"))
-    print(zr.engine.get_decision("custom_v2.json"))
-    print(zr.engine.get_decision("custom_v2.json"))
-    print("-----------------------------------------------")
+@udf()
+def bas(*args, **kwargs):
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
+    return "bas value"
+
+@udf(
+    comments="test udf foo",
+    args_info=[
+        FuncArg(arg_name="a", arg_type="string", defaults="", comments="var a"),
+        FuncArg(arg_name="b", arg_type="string", defaults="", comments="var b"),
+        FuncArg(arg_name="c", arg_type="string", defaults="", comments="var c"),
+    ],
+    return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
+)
+def foo(*args, **kwargs):
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
+    return "foo value"
+
+
+@udf(
+    comments="group_distinct_1m_demo function",
+    args_info=[
+        FuncArg(arg_name="group", arg_type="string", defaults="", comments="var group"),
+        FuncArg(arg_name="distinct", arg_type="string", defaults="", comments="var distinct"),
+    ],
+    return_info=FuncRet(field_type="string", examples={}, comments="返回值示例, 字段解释")     
+)
+def group_distinct_1m_demo(*args, **kwargs):
+    logger.info(f"  args:{args}")
+    logger.info(f"kwargs:{kwargs}")
+    return {
+            "function": "group_distinct_1m_demo",
+            "pv": 1,
+            "uv": 2,
+            "gpv": 3
+        }
+
+
+async def test_zenrule():
+    """
+        推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
+    """
+    zr = ZenRule({})
+    key = "xxxx_rule"
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / "custom_v2.json"
+
+    with open(filename, "r", encoding="utf8") as f:
+        logger.warning(f"graph json: %s", filename)
+        content =  f.read()
+
+    zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+    print("zen rule custom_v2 result:", result)
+
+    result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+    print("zen rule custom_v2 result2:", result)
+
+
+
+# 需要对 async loader 定义进行测试.
+def loader(key):
+    """
+        loader 如果 loader 是异步函数, 那么同步的 get_decision 会有问题.
+        除非我们自己实现 zenRule 的 get_decision, 而不是去调用 zenEngine的 get_decision
+        加载规则还是让客户自己选择实现, 然后调用 create_decision_with_cache_key 缓存下来即可.
+        暂时loader选择使用同步函数.
+        此方法需要被覆写.
+    """
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / key
+    with open(filename, "r", encoding="utf8") as f:
+        logger.warning(f"graph json: %s", filename)
+        return f.read()
+
+
+async def test_zenrule_with_loader():
+    zr = ZenRule({"loader": loader})
 
     result = await zr.async_evaluate("custom_v2.json", {"input": 7, "myvar": 15})
     print("zen rule custom_v2 result:", result)
-    import time
-    time.sleep(1)
+
     result = await zr.async_evaluate("custom_v2.json", {"input": 7, "myvar": 15})
     print("zen rule custom_v2 result2:", result)
 
@@ -30,26 +113,7 @@ async def test_zenrule_custom_v2():
     print("zen rule custom_v2 result2:", result)
 
 
-    # result = await zr.async_evaluate("custom_v2_parse.json", {"input": 7, "myvar": 15})
-    # print("zen rule custom_v2 result2:", result)
-
-# async def test_zenrule_custom_v3():
-#     zr = zenRule()
-#     result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
-#     print("zen rule custom_v3 result:", result)
-
-async def test_ast_exec():
-    v = [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, {"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, {"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, {"name": "foo", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, "func_value"], [{"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, "func_value"]], "ns": "", "id": "0c509d4654ef443eb621d791d3ffcaa1"}]
-
-    await ast_exec(v, {"input": 7, "myvar": 15}, {"node_id": "nodexxxxx", "meta": {}})
-
-
 if __name__ == "__main__":
-    asyncio.run(test_zenrule_custom_v2())
-    # asyncio.run(test_zenrule_custom_v3())
-
-    # import time
-    # t1 = time.time()
-    # asyncio.run(test_ast_exec())
-    # t2 = time.time()
-    # print("delta time:", t2 - t1)
+    # test_zenrule
+    asyncio.run(test_zenrule())
+    asyncio.run(test_zenrule_with_loader())
