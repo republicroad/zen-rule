@@ -1,5 +1,6 @@
 
 import logging
+import inspect
 import asyncio
 from pprint import pprint
 from pathlib import Path
@@ -11,21 +12,21 @@ logger = logging.getLogger(__name__)
 
 @udf()
 def zoo(*args, **kwargs):
-    logger.info(f"  args:{args}")
-    logger.info(f"kwargs:{kwargs}")
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     return "zoo value"
 
 
 @udf()
 def bar(*args, **kwargs):
-    logger.info(f"  args:{args}")
-    logger.info(f"kwargs:{kwargs}")
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     return "bar value"
 
 @udf()
 def bas(*args, **kwargs):
-    logger.info(f"  args:{args}")
-    logger.info(f"kwargs:{kwargs}")
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     return "bas value"
 
 @udf(
@@ -38,8 +39,8 @@ def bas(*args, **kwargs):
     return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
 )
 def foo(*args, **kwargs):
-    logger.info(f"  args:{args}")
-    logger.info(f"kwargs:{kwargs}")
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     return "foo value"
 
 
@@ -69,7 +70,7 @@ async def test_zenrule():
     zr = ZenRule({})
     key = "xxxx_rule"
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v2.json"
+    filename = basedir / "graph" / "custom_v1.json"
 
     with open(filename, "r", encoding="utf8") as f:
         logger.warning(f"graph json: %s", filename)
@@ -79,8 +80,8 @@ async def test_zenrule():
     result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
     print("zen rule custom_v2 result:", result)
 
-    result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result2:", result)
+    # result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+    # print("zen rule custom_v2 result2:", result)
 
 
 
@@ -116,4 +117,4 @@ async def test_zenrule_with_loader():
 if __name__ == "__main__":
     # test_zenrule
     asyncio.run(test_zenrule())
-    asyncio.run(test_zenrule_with_loader())
+    # asyncio.run(test_zenrule_with_loader())

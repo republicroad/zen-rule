@@ -224,6 +224,7 @@ class FuncItem:
     def args_eval(cls, func_args, func_value_context, args_input, args_expr_eval):
         """
             args_parse 和 args_eval中所有的类型都要匹配, 这样才能实现所有参数类型都能解析执行.
+            # 是否将列表参数转化为字典参数.
         """
         args = []
         # for arg, t in func["args"]:

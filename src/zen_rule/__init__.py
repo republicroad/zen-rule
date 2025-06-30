@@ -145,19 +145,43 @@ class ZenRule:
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
 
-                ### 2.将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
+                ### 2.将自定义节点格式v1转换为 v2 格式.
+                v1_inputs = node["content"]["config"].get("inputs", [])
+                if v1_inputs:
+                    expressions = []
+                    # for i in v1_inputs["funcmeta"]["arguments"]:
+                    #     arg_maps = [i["arg_name"], v1_arg_exprs[i["arg_name"]]]
+                    for func_item in v1_inputs:
+                        id = func_item["id"]
+                        key = func_item["key"]
+                        func_name = func_item["funcmeta"]["name"]
+                        v1_arg_exprs = func_item["arg_exprs"]
+                        args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
+                        args_ = ",".join([j for _, j in args])
+                        func_call = f"{func_name}({args_})"
+                        d = {
+                            "id": id,
+                            "key": key,
+                            "value": func_call
+                        }
+                        expressions.append(d)
+
+                    node["content"]["config"]["expressions"] = expressions
+
+                ### 3.将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
+                ### todo: 要在执行引擎那里去设置关键字参数传递才能兼容 v1 版本.
+                # if  node["content"]["config"].get("version") == "v2":
                 expr_asts = []
                 custom_expressions = node["content"]["config"].get("expressions")
                 if custom_expressions:
-                    for i in custom_expressions:
-                        item = {**i}
-                        item["value"] = zen_custom_expr_parse(i["value"])
+                    for func_item in custom_expressions:
+                        item = {**func_item}
+                        item["value"] = zen_custom_expr_parse(func_item["value"])
                         expr_asts.append(item)
                     node["content"]["config"]["expr_asts"] = expr_asts
+                pprint(node["content"]["config"])
 
-                ### 3.将自定义节点格式v1转换为 v2 格式. todo.
-            else:
-                meta = {}
+
         # logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 

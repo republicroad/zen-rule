@@ -1,10 +1,12 @@
 [project]
 name = "zen-rule"
-version = "0.1.0"
+version = "0.2.0"
 description = "zen-engine enrichment for custom node spec and cache ZenDecision objects for performance"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = ["zen-engine"]
+dependencies = [
+    "zen-engine"
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -18,3 +20,7 @@ name = "testpypi"
 url = "https://test.pypi.org/simple/"
 publish-url = "https://test.pypi.org/legacy/"
 explicit = true
+
+[project.urls]
+Homepage = "https://github.com/republicroad/zen-rule"
+Documentation = "https://github.com/republicroad/zen-rule/blob/main/README.md"
