@@ -10,7 +10,7 @@ import inspect
 
 import zen
 from zen import ZenDecision
-from .custom.udf_manager import udf_manager
+from .custom.udf_manager import udf_manager, udf, FuncArg, FuncRet
 from .custom.func_engine_v2 import ast_exec, zen_custom_expr_parse
 # from zen import EvaluateResponse  # cannot import
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class ZenRule:
                         expr_asts.append(item)
                     node["content"]["config"]["expr_asts"] = expr_asts
 
-        # logger.debug(f"rule_graph:{pformat(rule_graph)}")
+        logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 
     @classmethod

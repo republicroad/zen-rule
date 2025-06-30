@@ -1,51 +1,13 @@
 
 # zen-rule
 
-## develop
-
-初始化一个 python 库的包结构,
-
-> uv init --lib .
-> uv init --lib zen-rule
-
-uv init 默认把程序放在 src 文件夹下(src文件夹下无 __init__.py 文件, 不是python模块). 
-
-程序开发时，需要对开发的包进行测试. 有两种方法:
-
-1. 将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.
-2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
-
-pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _zen_rule.pth 
-
-```bash
-/home/ryefccd/workspace/zen-rule/src(.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/zen_rule-0.1.0.dist-info/RECORD 
-_zen_rule.pth,sha256=_hfX66NqcOptirPAFCr8WKBAxzevMvwcwIzxoCuR0Gc,36
-zen_rule-0.1.0.dist-info/INSTALLER,sha256=5hhM4Q4mYTT9z6QB6PGpUAW81PGNFrYrdXMj4oM_6ak,2
-zen_rule-0.1.0.dist-info/METADATA,sha256=KaQQLhC57VzmOx1iV40tKN6UPI9eQ6Mh2VM0dGUR_fA,777
-zen_rule-0.1.0.dist-info/RECORD,,
-zen_rule-0.1.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-zen_rule-0.1.0.dist-info/WHEEL,sha256=qtCwoSJWgHk21S1Kb4ihdzI2rlJ1ZKaIurTj_ngOhyQ,87
-zen_rule-0.1.0.dist-info/direct_url.json,sha256=oUFJmKTIsuVYL6vu1pBc1kSxaxyaYoYahIAj2sIEEts,78
-zen_rule-0.1.0.dist-info/uv_cache.json,sha256=f86k5FOHVCQBiOmxV_ANc62kP71iNC1Mc8Zz69AMbvM,89
-
-(.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/_zen_rule.pth 
-/home/ryefccd/workspace/zen-rule/src
-```
-
-## monorepo(multi develop packages dependencies)
-
-[uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#using-workspaces)
-
-
-
 ## example
 
 推荐线上使用 decision 缓存模式, 这样规则只需要加载，解析一次后重复使用，提高系统性能.
 
 ```python
 from pathlib import Path
-from zen_rule.custom.udf_manager import udf
-from zen_rule import ZenRule
+from zen_rule import ZenRule, udf
 
 
 async def test_zenrule():
@@ -71,8 +33,7 @@ async def test_zenrule():
 
 ```python
 from pathlib import Path
-from zen_rule.custom.udf_manager import udf
-from zen_rule import ZenRule
+from zen_rule import ZenRule, udf
 
 
 def loader(key):
@@ -98,7 +59,8 @@ async def test_zenrule_with_loader():
 ```
 
 
-包含自定义函数示例的规则:
+包含自定义函数示例的规则:  
+[custom_v2.json](graph/custom_v2.json)  
 
 ```json
 {
@@ -269,3 +231,62 @@ async def ast_exec():
 
     await ast_exec(v, {"input": 7, "myvar": 15}, {"node_id": "nodexxxxx", "meta": {}})
 ```
+
+## develop
+
+### 初始化包
+初始化一个 python 库的包结构,
+
+```bash
+uv init --lib .
+uv init --lib zen-rule
+```
+
+uv init 默认把程序放在 src 文件夹下(src文件夹下无 __init__.py 文件, 不是python模块). 
+
+### 本地开发
+
+程序开发时，需要对开发的包进行测试. 有两种方法:
+
+1. 将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.
+2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
+
+pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _zen_rule.pth 
+
+```bash
+(.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/zen_rule-0.1.0.dist-info/RECORD 
+_zen_rule.pth,sha256=_hfX66NqcOptirPAFCr8WKBAxzevMvwcwIzxoCuR0Gc,36
+zen_rule-0.1.0.dist-info/INSTALLER,sha256=5hhM4Q4mYTT9z6QB6PGpUAW81PGNFrYrdXMj4oM_6ak,2
+zen_rule-0.1.0.dist-info/METADATA,sha256=KaQQLhC57VzmOx1iV40tKN6UPI9eQ6Mh2VM0dGUR_fA,777
+zen_rule-0.1.0.dist-info/RECORD,,
+zen_rule-0.1.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+zen_rule-0.1.0.dist-info/WHEEL,sha256=qtCwoSJWgHk21S1Kb4ihdzI2rlJ1ZKaIurTj_ngOhyQ,87
+zen_rule-0.1.0.dist-info/direct_url.json,sha256=oUFJmKTIsuVYL6vu1pBc1kSxaxyaYoYahIAj2sIEEts,78
+zen_rule-0.1.0.dist-info/uv_cache.json,sha256=f86k5FOHVCQBiOmxV_ANc62kP71iNC1Mc8Zz69AMbvM,89
+
+(.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/_zen_rule.pth 
+/home/ryefccd/workspace/zen-rule/src
+```
+
+### 包构建
+
+先把 dist 包中的文件删除, 然后 uv build 执行构建.
+
+```bash
+rm -r dist  
+uv build
+```
+
+### 包发布
+
+需要在 pypi 上创建一个账号, 在完成 `uv build` 之后, 使用 `uv publish` 进行包的上传.
+
+```bash
+uv publish
+```
+
+[Building and publishing a package](https://docs.astral.sh/uv/guides/package/#publishing-your-package)  
+
+## monorepo(multi develop packages dependencies)
+
+[uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#using-workspaces)

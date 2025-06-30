@@ -20,21 +20,6 @@ class FuncArg:
             "comments": self.comments,
         }
 
-class FuncValue:
-    def __init__(self, field_name: str, field_type: str, defaults: Any, comments: str):
-        self.field_name = field_name
-        self.field_type = field_type
-        self.defaults = defaults
-        self.comments = comments
-
-    def to_dict(self):
-        return {
-            "field_name": self.field_name,
-            "field_type": self.field_type,
-            "defaults": self.defaults,
-            "comments": self.comments,
-        }
-
 class FuncRet:
     def __init__(self, field_type: str, examples: Any, comments: str):
         self.field_type = field_type
@@ -64,7 +49,7 @@ class UDFManager:
         }
         self.default_type = "Any"
 
-    def register_function(self, func, comments=None, args_info=None, return_info=None):
+    def register_function(self, func, comments:str =None, args_info: FuncArg =None, return_info: FuncRet =None):
         sig = signature(func)
         arguments = []
 
@@ -76,10 +61,8 @@ class UDFManager:
             # logger.debug(f"sig.parameters: {sig.parameters}")
             # logger.debug(f"sig.parameters items(): {pformat(sig.parameters.items())}")
             for name, param in sig.parameters.items():
-                # arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
                 arg_type = self.param_annotation.get(param.annotation, self.default_type)
                 defaults = '' if param.default == Parameter.empty else param.default
-                # comments = f'{name} parameter'
                 comments = f'{name}:{arg_type}'
                 arguments.append(FuncArg(name, arg_type, defaults, comments))
 
@@ -87,23 +70,14 @@ class UDFManager:
             if extra_arguments:
                 raise Exception("udf function only allow to contains *args, **kwargs, please use @udf args_info to describe arg names")            
         # logger.debug(f"return_info:{return_info}")
-
-        # # Use provided return_info or default to a simple return value
-        # if return_info:
-        #     return_values = {k: v for k, v in return_info.items()}
-        # else:
-        #     return_values = {
-        #         "return_value": FuncValue("return", "string", "", "Function return value")
-        #     }
-
+        return_values = return_info.to_dict() if return_info else {}
+        # logger.debug(f"return_values:{return_values}")
         self.functions[func.__name__] = {
             "func": func,
             "name": func.__name__,
             "arglength": len(arguments),
             "arguments": [arg.to_dict() for arg in arguments],
-            # 以后应该改成这个配置
-            # "return_values": {k: v.to_dict() for k, v in return_values.items()},
-            "return_values": {},  # {k: v.to_dict()['defaults'] for k, v in return_values.items()},
+            "return_values": return_values,
             "comments": comments or func.__doc__
         }
 

@@ -4,8 +4,7 @@ import inspect
 import asyncio
 from pprint import pprint
 from pathlib import Path
-from zen_rule.custom.udf_manager import udf, FuncArg, FuncRet
-from zen_rule import ZenRule, ast_exec
+from zen_rule import ZenRule, udf, FuncArg, FuncRet, ast_exec
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
