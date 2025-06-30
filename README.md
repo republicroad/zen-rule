@@ -285,6 +285,16 @@ uv build
 uv publish
 ```
 
+
+To set your API token for PyPI, you can create a $HOME/.pypirc similar to:
+
+```ini
+[pypi]
+username = __token__
+password = <PyPI token>
+```
+
+[Using a PyPI token](https://packaging.python.org/en/latest/specifications/pypirc/#using-a-pypi-token)  
 [Building and publishing a package](https://docs.astral.sh/uv/guides/package/#publishing-your-package)  
 
 ## monorepo(multi develop packages dependencies)

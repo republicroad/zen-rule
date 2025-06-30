@@ -15,12 +15,6 @@ build-backend = "hatchling.build"
 [tool.uv.workspace]
 members = ["zen-rule"]
 
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
-explicit = true
-
 [project.urls]
 Homepage = "https://github.com/republicroad/zen-rule"
 Documentation = "https://github.com/republicroad/zen-rule/blob/main/README.md"
