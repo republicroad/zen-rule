@@ -9,7 +9,6 @@
 import asyncio
 import logging
 from pprint import pprint, pformat
-from dataclasses import dataclass, asdict, field
 from pathlib import Path
 import zen
 from .udf_manager import udf_manager
@@ -24,18 +23,22 @@ async def ast_exec(expr_ast, args_input, context={}):
     func_value_context = {}  # ast 求值时, 函数值暂存在此字典, 用于嵌套函数传参.
     # logger.debug(f"{pformat(expr_ast)}")
     for func in expr_ast:  # 执行一个嵌套函数表达式.
-        ### 下列代码需要封装为一个执行引擎.
         logger.debug(f"current func_value_context: {func_value_context}")
         ### 目前只支持外部自定义函数调用. 不支持和 zen expression 的函数进行混合使用.
         func_name = func["name"]
-        # todo: 将 udf 中定义的函数中的参数定义顺序和和当前的 args 来做字典映射. 这样可以将所有的位置参数转化为关键字参数.
         args = FuncItem.args_eval(func["args"], func_value_context, args_input, args_expr_eval)
+        f = udf_manager.udf_info(func["name"])
+        # 结合函数的装饰器中的参数描述, 将参数转化为关键字参数.
+        _kwargs = FuncItem.args_map(args, f)
+        logger.debug(f"ast_exec {func_name} args: {args}")
+        logger.debug(f"ast_exec {func_name} kwargs: {_kwargs}")
         kwargs = {
+            **_kwargs,
             **context,
             "func_id": func["id"],
         }
         result = await udf_manager(func["name"], *args, **kwargs)
-        logger.warning(f"{func_name}({args}) ->: {result}")
+        logger.debug(f"{func_name} calling ->: {result}")
         func_value_context[func["id"]] = result
 
     return result

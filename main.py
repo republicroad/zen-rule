@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 def zoo(*args, **kwargs):
     logger.info(f"{inspect.stack()[0][3]} args:{args}")
     logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    print("zoooooooooooooooooo")
     return "zoo value"
 
 
@@ -50,11 +51,11 @@ def foo(*args, **kwargs):
         FuncArg(arg_name="group", arg_type="string", defaults="", comments="var group"),
         FuncArg(arg_name="distinct", arg_type="string", defaults="", comments="var distinct"),
     ],
-    return_info=FuncRet(field_type="string", examples={}, comments="返回值示例, 字段解释")     
+    return_info=FuncRet(field_type="object", examples={}, comments="返回值示例, 字段解释")     
 )
 def group_distinct_1m_demo(*args, **kwargs):
-    logger.info(f"  args:{args}")
-    logger.info(f"kwargs:{kwargs}")
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     return {
             "function": "group_distinct_1m_demo",
             "pv": 1,
@@ -62,15 +63,26 @@ def group_distinct_1m_demo(*args, **kwargs):
             "gpv": 3
         }
 
+### 这个定义会报错
+# @udf(
+#     comments="group_distinct_1m_demo function",
+#     args_info=[
+
+#     ],
+#     return_info=FuncRet(field_type="string", examples={}, comments="返回值示例, 字段解释")     
+# )
+# def group_distinct_1m_demo(ip, user, *args, **kwargs):
+#     pass
 
 async def test_zenrule():
     """
         推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
+        规则图是 v2 版本, 执行引擎是 custom_handler_v2
     """
     zr = ZenRule({})
     key = "xxxx_rule"
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v1.json"
+    filename = basedir / "graph" / "custom_v2.json"
 
     with open(filename, "r", encoding="utf8") as f:
         logger.warning(f"graph json: %s", filename)
@@ -82,6 +94,43 @@ async def test_zenrule():
 
     # result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
     # print("zen rule custom_v2 result2:", result)
+
+
+async def test_zenrulev1_with_enginev2():
+    """
+        规则图是 v1 版本, 执行引擎是 custom_handler_v2
+    """
+    zr = ZenRule({})
+    key = "xxxx_rule"
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / "custom_v1.json"
+
+    with open(filename, "r", encoding="utf8") as f:
+        logger.warning(f"graph json: %s", filename)
+        content =  f.read()
+
+    zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    result = await zr.async_evaluate(key, {"ip": "1.2.3.4", "user": "17707115956"})
+    print("zen rule custom_v1 result:", result)
+
+
+async def test_zenrulev1_with_enginev1():
+    """
+        规则图是 v1 版本, 执行引擎是 custom_handler_v1
+    """
+    zr = ZenRule({"customHandler": ZenRule.custom_handler_v1})
+    key = "xxxx_rule"
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / "custom_v1.json"
+
+    with open(filename, "r", encoding="utf8") as f:
+        logger.warning(f"graph json: %s", filename)
+        content =  f.read()
+
+    zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    result = await zr.async_evaluate(key, {"ip": "1.2.3.4", "user": "17707115956"})
+    print("zen rule custom_v1 result:", result)
+
 
 
 
@@ -116,5 +165,7 @@ async def test_zenrule_with_loader():
 
 if __name__ == "__main__":
     # test_zenrule
+    asyncio.run(test_zenrulev1_with_enginev1())
+    asyncio.run(test_zenrulev1_with_enginev2())
     asyncio.run(test_zenrule())
     # asyncio.run(test_zenrule_with_loader())

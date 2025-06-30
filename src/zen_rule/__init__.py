@@ -70,6 +70,9 @@ class ZenRule:
         self.custom_context = {}  # 自定义节点中的需要传入的上线文参数, 比如 trace_id 或者规则的相关元信息.
 
     def create_decision(self, content) -> ZenDecision:
+        """
+            如果不想 decision 被缓存, 那么请使用 create_decision 方法来获取 decision.
+        """
         content_ = self._parse_graph_nodes(content)
         # logger.debug(f"after _parse_graph_nodes: {content_}")
         return self.engine.create_decision(content_)
@@ -145,32 +148,35 @@ class ZenRule:
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
 
-                ### 2.将自定义节点格式v1转换为 v2 格式.
-                v1_inputs = node["content"]["config"].get("inputs", [])
-                if v1_inputs:
-                    expressions = []
-                    # for i in v1_inputs["funcmeta"]["arguments"]:
-                    #     arg_maps = [i["arg_name"], v1_arg_exprs[i["arg_name"]]]
-                    for func_item in v1_inputs:
-                        id = func_item["id"]
-                        key = func_item["key"]
-                        func_name = func_item["funcmeta"]["name"]
-                        v1_arg_exprs = func_item["arg_exprs"]
-                        args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
-                        args_ = ",".join([j for _, j in args])
-                        func_call = f"{func_name}({args_})"
-                        d = {
-                            "id": id,
-                            "key": key,
-                            "value": func_call
-                        }
-                        expressions.append(d)
+                # config 中从 v2 spec 开始就必须有 version 字段.
+                # config 中如果没有 version, 那么就是 v1 版本.
+                custom_node_version = node["content"]["config"].get("version", "v1")
+                if custom_node_version  == "v1":
+                    ### 将自定义节点格式v1转换为 v2 格式.
+                    v1_inputs = node["content"]["config"].get("inputs", [])
+                    if v1_inputs:
+                        expressions = []
+                        for func_item in v1_inputs:
+                            id = func_item["id"]
+                            key = func_item["key"]
+                            func_name = func_item["funcmeta"]["name"]
+                            v1_arg_exprs = func_item["arg_exprs"]
+                            args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
+                            args_ = ",".join([j for _, j in args])
+                            func_call = f"{func_name}({args_})"
+                            d = {
+                                "id": id,
+                                "key": key,
+                                "value": func_call
+                            }
+                            expressions.append(d)
 
-                    node["content"]["config"]["expressions"] = expressions
+                        # 将 v1 格式转化为 v2 的格式. 然后统一使用解析, 将函数调用表达式得到的抽象语法树保存下来.
+                        node["content"]["config"]["expressions"] = expressions
+                        node["content"]["config"]["version"] = "v2"
+                        # 是否删除 inputs 字段?
 
-                ### 3.将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
-                ### todo: 要在执行引擎那里去设置关键字参数传递才能兼容 v1 版本.
-                # if  node["content"]["config"].get("version") == "v2":
+                ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
                 expr_asts = []
                 custom_expressions = node["content"]["config"].get("expressions")
                 if custom_expressions:
@@ -179,13 +185,13 @@ class ZenRule:
                         item["value"] = zen_custom_expr_parse(func_item["value"])
                         expr_asts.append(item)
                     node["content"]["config"]["expr_asts"] = expr_asts
-                pprint(node["content"]["config"])
-
 
         # logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 
-    async def custom_handler_v1(self, request, **kwargs):
+    @classmethod
+    async def custom_handler_v1(cls, request):
+        logger.debug("custom node use custom_handler_v1")
         funcs = request.node["config"].get("inputs", [])
         trans_func = lambda x: zen.evaluate_expression(x, request.input)
         res = {}
@@ -203,7 +209,7 @@ class ZenRule:
             }
             # env.update(vars2value)
             bar.append((item["key"], funcname, env))
-        results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2], **kwargs) for _ in bar])
+        results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2]) for _ in bar])
         for key, result in zip([_[0] for _ in bar], results):
             res[key] = result
         res.update({k: v for k, v in request.input.items() if k != "$nodes"})
@@ -212,7 +218,8 @@ class ZenRule:
             "output": res
         }
 
-    async def custom_handler_v2(self, request):
+    @classmethod
+    async def custom_handler_v2(cls, request):
         """
             v2 支持字面量的自定义函数的表达式, 和普通函数类似, 也支持函数表达式的嵌套调用.
             参考 src/custom/custom_v2.json 中的示例.
@@ -221,9 +228,10 @@ class ZenRule:
         # logger.debug(f"request.node:{request.node}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
-        if not expr_asts:  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
-            return await self.custom_handler_v1(request)
-
+        # if not expr_asts and request.node["config"].get("inputs"):  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
+        #     logger.debug("custom node use custom_handler_v1")
+        #     return await cls.custom_handler_v1(request)
+        logger.debug("custom node use custom_handler_v2")
         coro_funcs = []
         results = {}
         context = {

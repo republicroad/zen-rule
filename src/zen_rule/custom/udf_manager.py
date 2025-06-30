@@ -73,8 +73,8 @@ class UDFManager:
             for info in args_info:
                 arguments.append(info)
         else:
-            logger.debug(f"sig.parameters: {sig.parameters}")
-            logger.debug(f"sig.parameters items(): {pformat(sig.parameters.items())}")
+            # logger.debug(f"sig.parameters: {sig.parameters}")
+            # logger.debug(f"sig.parameters items(): {pformat(sig.parameters.items())}")
             for name, param in sig.parameters.items():
                 # arg_type = "string" if param.annotation == str else "json" if param.annotation == dict else "Any"
                 arg_type = self.param_annotation.get(param.annotation, self.default_type)
@@ -83,7 +83,11 @@ class UDFManager:
                 comments = f'{name}:{arg_type}'
                 arguments.append(FuncArg(name, arg_type, defaults, comments))
 
-        logger.debug(f"return_info:{return_info}")
+            extra_arguments = [(arg.arg_name, arg.arg_type) for arg in arguments if arg.arg_name not in {"args", "kwargs"}]
+            if extra_arguments:
+                raise Exception("udf function only allow to contains *args, **kwargs, please use @udf args_info to describe arg names")            
+        # logger.debug(f"return_info:{return_info}")
+
         # # Use provided return_info or default to a simple return value
         # if return_info:
         #     return_values = {k: v for k, v in return_info.items()}
@@ -114,6 +118,9 @@ class UDFManager:
             }
             for data in self.functions.values()
         ]
+
+    def udf_info(self, name) -> List[Dict[str, Any]]:
+        return self.functions[name] 
 
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
         """

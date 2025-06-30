@@ -224,7 +224,6 @@ class FuncItem:
     def args_eval(cls, func_args, func_value_context, args_input, args_expr_eval):
         """
             args_parse 和 args_eval中所有的类型都要匹配, 这样才能实现所有参数类型都能解析执行.
-            # 是否将列表参数转化为字典参数.
         """
         args = []
         # for arg, t in func["args"]:
@@ -239,6 +238,18 @@ class FuncItem:
             else:  # ["int", "float"]
                 args.append(arg)
         return args
+
+    @classmethod
+    def args_map(cls, args, function_meta):
+        """
+            将参数值和参数名字组装为字典.
+            如果没有在自定义函数中设置对应的 arg_name, 那么默认的关键字参数的下标就是以下划线加数字(如_0, _1, _2 )等开头.
+        """
+        arguments = [i.get("arg_name") for i in function_meta["arguments"] if i.get("arg_name") not in {"args", "kwargs"}]
+        if not arguments:
+            arguments = [f"_{i}" for i in range(len(args))]
+        keyword_args = {arg_name: v for arg_name, v in zip(arguments, args)}
+        return keyword_args
 
     @property
     def path(self):
