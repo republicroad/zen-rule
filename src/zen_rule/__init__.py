@@ -249,6 +249,8 @@ class ZenRule:
             "output": results
         }
 
+    def get_decision_cache(self, key):
+        return self.decision_cache.get(key, None)
 
 __all__ = [
     ZenRule,
