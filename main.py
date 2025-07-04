@@ -83,13 +83,16 @@ async def test_zenrule():
     basedir = Path(__file__).parent
     filename = basedir / "graph" / "custom_v2.json"
 
-    with open(filename, "r", encoding="utf8") as f:
-        logger.warning(f"graph json: %s", filename)
-        content =  f.read()
-
-    zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
-    result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result:", result)
+    if not zr.get_decision_cache(key):
+        # 根据实际情况去加载规则图的内容.
+        with open(filename, "r", encoding="utf8") as f:
+            logger.warning(f"graph json: %s", filename)
+            content =  f.read()
+        zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    for i in range(5000):
+        result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+        print("zen rule custom_v2 result:", result)
+        print(f"------------------{i}------------------------")
 
     # result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
     # print("zen rule custom_v2 result2:", result)
@@ -164,7 +167,7 @@ async def test_zenrule_with_loader():
 
 if __name__ == "__main__":
     # test_zenrule
-    asyncio.run(test_zenrulev1_with_enginev1())
-    asyncio.run(test_zenrulev1_with_enginev2())
+    # asyncio.run(test_zenrulev1_with_enginev1())
+    # asyncio.run(test_zenrulev1_with_enginev2())
     asyncio.run(test_zenrule())
     # asyncio.run(test_zenrule_with_loader())

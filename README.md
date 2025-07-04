@@ -1,9 +1,15 @@
 
 # zen-rule
 
+zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
+  
+1. 提供多个 decision 的缓存.  
+2. 提供自定义节点中多个函数调用表达式的定义, 解析和调用规范.  
+
 ## example
 
-推荐线上使用 decision 缓存模式, 这样规则只需要加载，解析一次后重复使用，提高系统性能.
+推荐线上使用 decision 缓存模式, 这样规则只需要加载，解析一次后重复使用，提高系统性能.  
+每次先判断zenRule实例中是否有规则的缓存，如果没有则去加载规则图; 如果有就直接通过规则键去调用规则对入参进行处理, 得到最后规则的输出.
 
 ```python
 from pathlib import Path
@@ -19,18 +25,18 @@ async def test_zenrule():
     basedir = Path(__file__).parent
     filename = basedir / "graph" / "custom_v2.json"
 
-    with open(filename, "r", encoding="utf8") as f:
-        logger.warning(f"graph json: %s", filename)
-        content =  f.read()
-
-    zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    if not zr.get_decision_cache(key):
+        # 根据实际情况去加载规则图的内容.
+        with open(filename, "r", encoding="utf8") as f:
+            logger.warning(f"graph json: %s", filename)
+            content =  f.read()
+        zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
     result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
     print("zen rule custom_v2 result:", result)
-
-    result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result2:", result)
 ```
 
+
+如果提供 loader 函数, 就是如下调用示例.  
 ```python
 from pathlib import Path
 from zen_rule import ZenRule, udf

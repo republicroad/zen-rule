@@ -123,13 +123,13 @@ class ZenRule:
 
     def evaluate(self, key, ctx, options=None) -> EvaluateResponse:
         # return self.engine.evaluate(key, ctx, options)  # engine.evaluate 会隐式调用 loader 函数.
-        decision = self.get_decision(key)
+        decision = self.get_decision_cache(key)
         logger.debug(f"evaluate decision: {decision}")
         return decision.evaluate(ctx, options)
 
     def async_evaluate(self, key, ctx, options=None) -> Awaitable[EvaluateResponse]:
         # return self.engine.async_evaluate(key, ctx, options)  # engine.async_evaluate 会隐式调用 loader 函数.
-        decision = self.get_decision(key)
+        decision = self.get_decision_cache(key)
         # decision = self.engine.get_decision(key)
         logger.debug(f"async_evaluate decision: {decision}")
         return decision.async_evaluate(ctx, options)
