@@ -6,11 +6,16 @@ from pprint import pprint
 from pathlib import Path
 from zen_rule import ZenRule, udf, FuncArg, FuncRet, ast_exec
 
+from utils import httpsession, get_state
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 @udf()
 def zoo(*args, **kwargs):
+    # get_state()
+    http_sess = httpsession.get()
+    logger.info(f"httpsession:{http_sess}")
     logger.info(f"{inspect.stack()[0][3]} args:{args}")
     logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     print("zoooooooooooooooooo")
@@ -78,7 +83,9 @@ async def test_zenrule():
         推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
         规则图是 v2 版本, 执行引擎是 custom_handler_v2
     """
+    # httpsession.set(object())  # 先设置 contextvars 再创建包含 custom_handler 的zen engine 实例, 自定义函数可以 contextvars get.
     zr = ZenRule({})
+    # httpsession.set(object())
     key = "xxxx_rule"
     basedir = Path(__file__).parent
     filename = basedir / "graph" / "custom_v2.json"
@@ -89,7 +96,7 @@ async def test_zenrule():
             logger.warning(f"graph json: %s", filename)
             content =  f.read()
         zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
-    for i in range(5000):
+    for i in range(1):
         result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
         print("zen rule custom_v2 result:", result)
         print(f"------------------{i}------------------------")
