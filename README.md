@@ -306,3 +306,157 @@ password = <PyPI token>
 ## monorepo(multi develop packages dependencies)
 
 [uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#using-workspaces)
+
+
+
+## uv 
+
+uv 在 python 开发中可以用于选择python解释器, 创建虚拟环境, 创建python应用包,  创建 python 库.
+
+
+### 管理 python 解释器(uv python)
+
+#### `uv python list` 
+
+可以显示当前python的解释器.
+```bash
+(.venv) $ uv python list
+cpython-3.14.0b4-linux-x86_64-gnu                 <download available>
+cpython-3.14.0b4+freethreaded-linux-x86_64-gnu    <download available>
+cpython-3.14.0b2-linux-x86_64-gnu                 /home/ryefccd/.local/share/uv/python/cpython-3.14.0b2-linux-x86_64-gnu/bin/python3.14
+cpython-3.13.5-linux-x86_64-gnu                   <download available>
+cpython-3.13.5+freethreaded-linux-x86_64-gnu      <download available>
+cpython-3.12.11-linux-x86_64-gnu                  <download available>
+cpython-3.11.13-linux-x86_64-gnu                  <download available>
+cpython-3.10.18-linux-x86_64-gnu                  <download available>
+cpython-3.10.12-linux-x86_64-gnu                  /usr/bin/python3.10
+cpython-3.10.12-linux-x86_64-gnu                  /usr/bin/python3 -> python3.10
+cpython-3.9.23-linux-x86_64-gnu                   <download available>
+cpython-3.8.20-linux-x86_64-gnu                   <download available>
+pypy-3.11.13-linux-x86_64-gnu                     <download available>
+pypy-3.10.16-linux-x86_64-gnu                     <download available>
+pypy-3.9.19-linux-x86_64-gnu                      <download available>
+pypy-3.8.16-linux-x86_64-gnu                      <download available>
+graalpy-3.11.0-linux-x86_64-gnu                   <download available>
+graalpy-3.10.0-linux-x86_64-gnu                   <download available>
+graalpy-3.8.5-linux-x86_64-gnu                    <download available>
+```
+
+#### `uv python install`
+
+安装 python 的版本(开代理加速安装)
+```bash
+uv python install 3.13  # 可以指定版本
+uv python install  cpython-3.14.0b4-linux-x86_64-gnu   # 也可以指定全限定名版本.
+```
+
+`uv python install 3.12 --preview` 使用 `--preview` 选项可以将 python3.12 添加至 PATH 下.这样可以全局使用.
+
+
+#### `uv python dir`
+查看已经下载的 python 解释器.
+
+
+```bash
+ryefccd@republic:~$ ll `uv python dir`
+总计 32
+drwxrwxr-x 5 ryefccd ryefccd 4096  7月 15 11:48 ./
+drwxrwxr-x 3 ryefccd ryefccd 4096  6月 27 15:35 ../
+drwxrwxr-x 6 ryefccd ryefccd 4096  7月 15 11:48 cpython-3.12.11-linux-x86_64-gnu/
+lrwxrwxrwx 1 ryefccd ryefccd   69  7月 15 11:48 cpython-3.12-linux-x86_64-gnu -> /home/ryefccd/.local/share/uv/python/cpython-3.12.11-linux-x86_64-gnu/
+drwxrwxr-x 6 ryefccd ryefccd 4096  6月 27 15:35 cpython-3.14.0b2-linux-x86_64-gnu/
+lrwxrwxrwx 1 ryefccd ryefccd   70  7月 15 11:48 cpython-3.14-linux-x86_64-gnu -> /home/ryefccd/.local/share/uv/python/cpython-3.14.0b2-linux-x86_64-gnu/
+-rw-rw-r-- 1 ryefccd ryefccd    1  6月 27 15:35 .gitignore
+-rwxrwxrwx 1 ryefccd ryefccd    0  6月 27 15:35 .lock*
+drwxrwxr-x 7 ryefccd ryefccd 4096  7月 15 11:48 .temp/
+```
+
+#### uv python find
+
+`uv python find` 查看当前的uv使用的python版本.
+```bash
+ryefccd@republic:~$ uv python find
+/home/ryefccd/workspace/brde/.venv/bin/python3.1
+```
+
+`uv python find <verison>` 可以查看python版本解释器的位置. 
+```bash
+(.venv) $ uv python find 3.12
+/home/ryefccd/.local/share/uv/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12
+(.venv) $ uv python find 3.13
+error: No interpreter found for Python 3.13 in virtual environments, managed installations, or search path
+(.venv) $ uv python find 3.14
+/home/ryefccd/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14
+```
+
+
+### 创建虚拟环境
+
+`uv venv` 会再当前目录创造一个 .venv 的虚拟环境.
+
+`uv venv --python 3.10 myvenv` 指定python的版本创建虚拟环境.
+
+### 运行python命令
+
+`uv run xxx.py`
+
+`uv run python -c "import sys;print(sys.executable)"` 
+
+
+### 创建python应用包
+
+#### uv init without package
+
+`uv init pyapp` 即可创建python应用包的结构. 应用由一个入口程序 main.py 和一个项目描述文件 pyproject.toml 构成.
+
+```bash
+uv init pyapp
+
+(.venv) $ tree -a pyapp/
+pyapp/
+├── main.py
+├── pyproject.toml
+└── README.md
+```
+
+`uv add fastapi` 可以添加应用依赖.
+
+
+#### uv init with package
+
+`uv init pyapp2 --package` 即可创建python应用包的结构. 应用由一个入口程序包 src/pyapp2 一个项目描述文件 pyproject.toml 构成.
+
+```bash
+(.venv) $ tree -a pyapp2
+pyapp2
+├── pyproject.toml
+├── README.md
+└── src
+    └── pyapp2
+        └── __init__.py
+```
+
+### 创建 python 库
+
+```bash
+uv init --lib pylib
+
+(.venv) $ tree -a pylib/
+pylib/
+├── pyproject.toml
+├── README.md
+└── src
+    └── pylib
+        ├── __init__.py
+        └── py.typed
+```
+
+`uv add zen-engine` 可以添加库依赖.
+
+如何对开发库进行测试:
+程序开发时，需要对开发的包进行测试. 有两种方法:
+
+1. 将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.
+2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
+
+pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _pylib.pth 
