@@ -19,9 +19,11 @@ logger = logging.getLogger(__name__)
 args_expr_eval = lambda x, input: zen.evaluate_expression(x, input)
 
 
-async def ast_exec(expr_ast, args_input, context={}):
+async def ast_exec(expr_item, args_input, context={}): 
     func_value_context = {}  # ast 求值时, 函数值暂存在此字典, 用于嵌套函数传参.
     # logger.debug(f"{pformat(expr_ast)}")
+    expr_id = expr_item["id"]
+    expr_ast = expr_item["value"]
     for func in expr_ast:  # 执行一个嵌套函数表达式.
         logger.debug(f"current func_value_context: {func_value_context}")
         ### 目前只支持外部自定义函数调用. 不支持和 zen expression 的函数进行混合使用.
@@ -35,11 +37,12 @@ async def ast_exec(expr_ast, args_input, context={}):
         kwargs = {
             **_kwargs,
             **context,
-            "func_id": func["id"],
+            "func_id": expr_id,
+            "expr_id": expr_id,
         }
         result = await udf_manager(func["name"], *args, **kwargs)
         logger.debug(f"{func_name} calling ->: {result}")
-        func_value_context[func["id"]] = result
+        func_value_context[expr_id] = result
 
     return result
 

@@ -240,9 +240,11 @@ class ZenRule:
         for item in expr_asts:
             # result = await ast_exec(item, request.input, context)
             # out_res[key] = result
-            coro_funcs.append(ast_exec(item["value"], request.input, context))
+            # coro_funcs.append(ast_exec(item["value"], request.input, context))
+            coro_funcs.append(ast_exec(item, request.input, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
+        results.update({k: v for k, v in request.input.items() if k != "$nodes"})
         logger.debug(results)
 
         return {
