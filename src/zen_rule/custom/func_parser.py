@@ -50,6 +50,10 @@ class StringT:
     token_type: str = "string"
     stop_word = {"'", '"'}
 
+    @classmethod
+    def predict(cls, c):
+        return c in cls.stop_word
+
 
 @dataclass
 class NumberT:
@@ -260,7 +264,7 @@ class FuncItem:
                 **asdict(self),
                 **{
                     "path": self.path,
-                    "ns": self.ns,
+                    # "ns": self.ns,
                     "id": self.id,
                     # "arg_types": self.arg_types,
                 }
@@ -294,7 +298,6 @@ def func_lexer(s):
             continue
         if FUNC_LEFT_BOUNDRY == c:
             token = stack_token_lex(_mystack)
-            # print(FUNC_LEFT_BOUNDRY, ":", token)
             if token:
                 tokens.append(token)
             tokens.append(FUNC_LEFT_BOUNDRY)
@@ -304,11 +307,24 @@ def func_lexer(s):
             if token:
                 tokens.append(token)
             tokens.append(FUNC_RIGHT_BOUNDRY)
-        elif ARGS_SPLIT == c: # 避免
-            token = stack_token_lex(_mystack)
-            if token:
-                tokens.append(token)
-            tokens.append(ARGS_SPLIT)
+        elif ARGS_SPLIT == c:
+            if _mystack and _mystack[0] in StringT.stop_word:
+                # 如果当前字符是逗号, 需要查看当前栈底是否有 ' 或者 " 符号, 如果是引号内的逗号, 那么此逗号不是参数的分隔符. 当前逗号是字符串的一部分，所以需要入栈.
+                _mystack.append(c)
+                # 数组不是原子类型，数组在语法解析中完成.
+            else:
+                token = stack_token_lex(_mystack)
+                if token:
+                    tokens.append(token)
+                tokens.append(ARGS_SPLIT)
+        elif StringT.predict(c):
+            _mystack.append(c)  # 引号入栈
+            # 匹配开始和结尾的引号, 识别字符串 token.
+            if len(_mystack) >= 2 and _mystack[0] in StringT.stop_word and _mystack[-1] == _mystack[0]:
+                # 如果当前栈内的栈底栈顶都是引号, 此部分就是一个字符串.
+                token = stack_token_lex(_mystack)
+                if token:
+                    tokens.append(token)
         elif ArrayT.predict(c):
             # 这里的写法可以优化, append boudry char 是否可以放在 stack_token_lex 中完成.
             if c == ArrayT.Array_LEFT:
