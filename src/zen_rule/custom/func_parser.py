@@ -18,11 +18,6 @@ import zen
 from .udf_manager import udf_manager
 logger = logging.getLogger(__name__)
 
-
-FUNC_LEFT_BOUNDRY = "("
-FUNC_RIGHT_BOUNDRY = ")"
-ARGS_SPLIT = ","
-
 # dataclass
 # https://stackoverflow.com/a/75291788
 # https://stackoverflow.com/a/76017464
@@ -54,6 +49,11 @@ class StringT:
     def predict(cls, c):
         return c in cls.stop_word
 
+    @classmethod
+    def strip(cls, c):
+        for item in cls.stop_word:
+            c = c.strip(item)
+        return c
 
 @dataclass
 class NumberT:
@@ -100,19 +100,6 @@ class ArrayT:
     def predict(cls, c):
         return c in {cls.Array_LEFT, cls.Array_RIGHT}
 
-    # @classmethod
-    # def stack_token_lex(cls, stack):
-    #     stop_chars = {"[", "]"}
-    #     l = []
-    #     c = ""
-    #     while(stack and c not in stop_chars):
-    #         c = stack.pop()
-    #         l.append(c)
-    #     l.reverse()
-    #     token = "".join(l)
-    #     logger.warning(f"token:{token}")
-    #     return token
-
     @classmethod
     def parse_array_ast(cls, stack):
         # stop_chars = {cls.Array_LEFT}
@@ -135,15 +122,44 @@ class ObjectT:
     """
         zen expression object type
         type({customer: { firstName: "John", lastName: "Doe" }});;'object'
+        type({customer: { "firstName": "John", lastName: "Doe" }});;'object'
     """
     name: str
     token_type: str = "object"
     Object_LEFT : str = "{"
     Object_RIGHT: str = "}"
+    Object_KEY_VALUE_SEP = ":"
 
     @classmethod
     def predict(cls, c):
-        return c in {cls.Object_LEFT, cls.Object_RIGHT}
+        return c in {cls.Object_LEFT, cls.Object_RIGHT, cls.Object_KEY_VALUE_SEP}
+
+    @classmethod
+    def parse_object_ast(cls, stack):
+        l = []
+        token = ""
+        logger.warning(f"before parse_object_ast stack:{stack}")
+        while(stack):
+            token = stack.pop()
+            if isinstance(token, str) and token == cls.Object_LEFT:
+                l.append(token)
+                break
+            else:
+                l.append(token)
+        l.reverse()
+        logger.warning(f"after  parse_object_ast stack:{stack}, \n object:{l}")
+        d = {}
+        for i in range(len(l)):
+            if l[i] == cls.Object_KEY_VALUE_SEP:
+                k = l[i-1]
+                v = l[i+1]
+                # 去掉键值对原来的引号
+                k = StringT.strip(k)  # 去掉原来键前后的字符串边界值
+                if isinstance(v, str):
+                    v = StringT.strip(v)  # 如果值是字符串, 去掉原来值前后的字符串边界值
+                d[k] = v
+        return d
+        # return l
 
 
 @dataclass
@@ -156,7 +172,7 @@ class FuncT:
     token_type: str = "function"
     Func_LEFT : str = "("
     Func_RIGHT: str = ")"
-
+    Func_ARGS_SEP  = ","
 
     @classmethod
     def predict_func_call(cls, c):
@@ -196,7 +212,7 @@ class FuncItem:
                 if (arg.startswith("'") and arg.endswith("'")) or (arg.startswith('"') and arg.endswith('"')):
                     # 常量字符串
                     final_args.append(arg)
-                    arg_types.append("string")
+                    arg_types.append(StringT.token_type)
                 elif arg.isdigit():
                     # 常量整型数
                     arg = int(arg)
@@ -214,13 +230,16 @@ class FuncItem:
                     # 变量
                     # 是否加参数的类型描述.
                     final_args.append(arg)
-                    arg_types.append("var")
+                    arg_types.append("var")  # todo: varT class
             elif isinstance(arg, list):
                 final_args.append(arg)
-                arg_types.append("array")                
+                arg_types.append(ArrayT.token_type)
+            elif isinstance(arg, dict):
+                final_args.append(arg)
+                arg_types.append(ObjectT.token_type)                
             else:
                 final_args.append(arg)
-                arg_types.append("func_value")
+                arg_types.append(FuncT.token_type)
         l = [list(i) for i in zip(final_args, arg_types)]
         return l
 
@@ -233,11 +252,11 @@ class FuncItem:
         # for arg, t in func["args"]:
         for arg, t in func_args:
             # 这里的参数类型枚举需要在解析时定义和映射. 然后在导入其他地方使用.
-            if t == "func_value":
+            if t == FuncT.token_type:
                 args.append(func_value_context.get(arg["id"]))
             elif t == "var":
                 args.append(args_expr_eval(arg, args_input))
-            elif t == "string":
+            elif t == StringT.token_type:
                 args.append(args_expr_eval(arg, args_input))
             else:  # ["int", "float"]
                 args.append(arg)
@@ -276,9 +295,6 @@ class FuncItem:
 
 
 def stack_token_lex(stack):
-    # stop chars 并没有传入.
-    # stop_chars = {FUNC_LEFT_BOUNDRY, FUNC_RIGHT_BOUNDRY, ARGS_SPLIT, ArrayT.Array_LEFT, ArrayT.Array_RIGHT}
-    # stop_chars = {}
     l = []
     # logger.debug(f"lexer temp stack:{stack}")
     while(stack):
@@ -296,27 +312,29 @@ def func_lexer(s):
     for c in s:
         if c in string.whitespace or c == '':
             continue
-        if FUNC_LEFT_BOUNDRY == c:
+        if FuncT.Func_LEFT == c:
             token = stack_token_lex(_mystack)
             if token:
                 tokens.append(token)
-            tokens.append(FUNC_LEFT_BOUNDRY)
-        elif FUNC_RIGHT_BOUNDRY == c:
+            tokens.append(FuncT.Func_LEFT)
+        elif FuncT.Func_RIGHT == c:
             # 完成右边括号匹配以后, 层级 -1.
             token = stack_token_lex(_mystack)
             if token:
                 tokens.append(token)
-            tokens.append(FUNC_RIGHT_BOUNDRY)
-        elif ARGS_SPLIT == c:
+            tokens.append(FuncT.Func_RIGHT)
+        elif FuncT.Func_ARGS_SEP == c:
+            # 因为字符串的识别是在词法作用解析时识别, 所以需要判断逗号是否在引号中.
             if _mystack and _mystack[0] in StringT.stop_word:
                 # 如果当前字符是逗号, 需要查看当前栈底是否有 ' 或者 " 符号, 如果是引号内的逗号, 那么此逗号不是参数的分隔符. 当前逗号是字符串的一部分，所以需要入栈.
                 _mystack.append(c)
                 # 数组不是原子类型，数组在语法解析中完成.
             else:
+                # 遇到逗号, 把前面的字符串组合为一个 token, 并在之后添加一个逗号用于分隔 token.
                 token = stack_token_lex(_mystack)
                 if token:
                     tokens.append(token)
-                tokens.append(ARGS_SPLIT)
+                tokens.append(FuncT.Func_ARGS_SEP)
         elif StringT.predict(c):
             _mystack.append(c)  # 引号入栈
             # 匹配开始和结尾的引号, 识别字符串 token.
@@ -325,36 +343,24 @@ def func_lexer(s):
                 token = stack_token_lex(_mystack)
                 if token:
                     tokens.append(token)
-        elif ArrayT.predict(c):
-            # 这里的写法可以优化, append boudry char 是否可以放在 stack_token_lex 中完成.
-            if c == ArrayT.Array_LEFT:
-                token = stack_token_lex(_mystack)
-                if token:
-                    tokens.append(token)
-                tokens.append(ArrayT.Array_LEFT)
-            else: # ]
-                token = stack_token_lex(_mystack)
-                if token:
-                    tokens.append(token)
-                tokens.append(ArrayT.Array_RIGHT)
-        elif ObjectT.predict(c):
-            if c == ObjectT.Object_LEFT:
-                token = stack_token_lex(_mystack)
-                if token:
-                    tokens.append(token)
-                tokens.append(ObjectT.Object_LEFT)
-            else: # ]
-                token = stack_token_lex(_mystack)
-                if token:
-                    tokens.append(token)
-                tokens.append(ObjectT.Object_RIGHT)
+        elif ArrayT.predict(c):  # ArrayT 识别出数组语法元素
+            ### 这里的写法可以优化, append boudry char 是否可以放在 stack_token_lex 中完成.
+            token = stack_token_lex(_mystack)
+            if token:
+                tokens.append(token)
+            tokens.append(c)
+        elif ObjectT.predict(c):  # ObjectT 识别出object语法元素
+            token = stack_token_lex(_mystack)
+            if token:
+                tokens.append(token)
+            tokens.append(c)
         else:
             _mystack.append(c)  
     return tokens
 
 
 def parse_func_arguments(stack):
-    stop_chars = (FUNC_LEFT_BOUNDRY,)
+    stop_chars = (FuncT.Func_LEFT,)
     l = []
     token = ""
     while(stack and token not in stop_chars):
@@ -374,14 +380,14 @@ def func_ast_parser(tokens):
     hierarchy = []  # 记录
     level = 0
     for token in  tokens:
-        if token == FUNC_LEFT_BOUNDRY:
+        if token == FuncT.Func_LEFT:
             # 左边界, 层级加一
             # 为了记忆这种无限层级调用关系, 所以需要一个对应的列表来记录层级, 这样也方便实现未来词法作用域.
             ns = _stack[-1]
             _stack.append(token)
             level = level + 1
             hierarchy.append(ns)
-        elif token == FUNC_RIGHT_BOUNDRY:
+        elif token == FuncT.Func_RIGHT:
             # 完成右边括号匹配以后, 完成一个无嵌套函数的调用解析. 
             # 层级 -1.
             # res = _stack and _stack.pop()
@@ -391,21 +397,28 @@ def func_ast_parser(tokens):
             func_item = FuncItem(name=func_name, args=args, hierarchy=hierarchy.copy(), level=level)
             res.append(func_item.to_dict())
             _stack.append(func_item.to_dict())  # 把嵌套函数作为上一层函数的参数放在参数位置上.
-            # print("func_items _stack:", _stack)
             level = level - 1
             hierarchy and hierarchy.pop()
-        elif token == ARGS_SPLIT:
+        elif token == FuncT.Func_ARGS_SEP:
             # 排除 ',' 号
             pass
         elif ArrayT.predict(token):
-            if token == ArrayT.Array_LEFT:
-                _stack.append(token)
-            else:
+            if token == ArrayT.Array_RIGHT:
                 # ArrayT.Array_RIGHT
                 # 出栈 匹配 ArrayT.Array_LEFT [ 即可.
                 logger.warning(f'Array match:{_stack}')
                 array_item = ArrayT.parse_array_ast(_stack)
                 _stack.append(array_item)
+            else:
+                _stack.append(token)
+        elif ObjectT.predict(token):  # ObjectT 解析 object 结构
+            if token == ObjectT.Object_RIGHT:
+                _stack.append(token)
+                logger.warning(f'Object match:{_stack}')
+                object_item = ObjectT.parse_object_ast(_stack)
+                _stack.append(object_item)
+            else:
+                _stack.append(token)
         else:
             _stack.append(token)
     return res
