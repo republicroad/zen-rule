@@ -1,6 +1,7 @@
 import contextvars
 import logging
 
+###  contextvars 无法传递至 zen-engine 的 customHandler 中, 所以, 连接句柄等信息.
 httpsession = contextvars.ContextVar('httpsession')
 
 
