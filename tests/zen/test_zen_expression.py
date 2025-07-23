@@ -37,21 +37,21 @@ def test_zen_expression_str():
     # 字符串操作符号 +
     assert zen.evaluate_expression("a+b", { "a": "hello ", "b": "world" }) == "hello world"
 
-    # 字符串比较符号 == !=
-    assert zen.evaluate_expression("a == b", { "a": "hello ", "b": "world" }) == False
-    assert zen.evaluate_expression("a != b", { "a": "hello ", "b": "world" }) == True
-
     # 字符串slice [start, end]满足左闭右闭区间, 与python字符串切片不一样，python为左闭右开区间
     assert zen.evaluate_expression("a[0:5]", { "a": "0123456789abcdef"}) == '012345'
+
+    # 变量等值与不等值判断 == !=
+    assert zen.evaluate_expression("a == b", { "a": "hello ", "b": "world" }) == False
+    assert zen.evaluate_expression("a != b", { "a": "hello ", "b": "world" }) == True
 
     # 字符串函数: len 接受一个字符串并返回其中的字符数
     assert zen.evaluate_expression("len(a) == 6", {"a": "string"}) == True
 
     # 字符串函数: upper 接受一个字符串并返回它的大写版本
-    assert zen.evaluate_expression("upper(a) == 'STRING'", {"a": "string"}) == True
+    assert zen.evaluate_expression("upper(a)", {"a": "string"}) == 'STRING'
 
     # 字符串函数: lower 接受一个字符串并返回其小写版本
-    assert zen.evaluate_expression("lower(a) == 'string'", {"a": "StrIng"}) == True
+    assert zen.evaluate_expression("lower(a)", {"a": "StrIng"}) == 'string'
 
     # 字符串函数: startsWith 接受两个参数，如果字符串以指定值开头，则返回 true
     assert zen.evaluate_expression("startsWith(a, 'Sat')", {"a": "Saturday night plans"}) == True
@@ -71,8 +71,8 @@ def test_zen_expression_str():
     assert zen.evaluate_expression(r"matches(a, '^\d+$')", {"a": "12345a"}) == False
 
     # 字符串函数: extract 接受两个参数，返回正则表达式中捕获组的数组
-    assert zen.evaluate_expression(r"extract(a, '(\d{4})-(\d{2})-(\d{2})') == ['2022-02-01', '2022', '02', '01']", {"a": "2022-02-01"}) == False
-    assert zen.evaluate_expression(r"extract(a, '(\w+).(\w+)') == ['foo.bar', 'foo', 'bar']", {"a": "foo.bar"}) == False
+    assert zen.evaluate_expression(r"extract(a, '(\d{4})-(\d{2})-(\d{2})')", {"a": "2022-02-01"}) ==  ['2022-02-01', '2022', '02', '01']
+    assert zen.evaluate_expression(r"extract(a, '(\w+).(\w+)')", {"a": "foo.bar"}) == ['foo.bar', 'foo', 'bar']
 
     # 字符串函数: string 接受一个参数，尝试将变量转换为字符串，失败时抛出错误
     assert zen.evaluate_expression("string(a) == 'abc'", {"a": "abc"}) == True
@@ -83,7 +83,7 @@ def test_zen_expression_str():
 
 def test_zen_expression_num():
     '''
-    数字可以是整数或小数（浮点数）。可以使用数字0-9, .（小数分隔符）和来定义, 使用_为了便于阅读
+    数字可以是整数或小数(浮点数)。可以使用数字0-9, .（小数分隔符）和来定义, 使用_为了便于阅读
     示例：
     100;
     1_000_000;
@@ -557,6 +557,10 @@ def test_zen_expression_array():
     [1, 2, 3]; 
     [true, false];
     '''
+    # 数组目前不支持字面量等值判断
+    assert not zen.evaluate_expression("[1,2,3]==[1,2,3]") 
+    assert not zen.evaluate_expression("['a', 'b', 'c']==['a', 'b', 'c']")
+
     # 数组成员访问
     assert zen.evaluate_expression("a[1]", { "a": [1, 2, 3, 4]}) == 2
 
@@ -659,6 +663,13 @@ def test_zen_expression_context():
         }
     }
     '''
+    assert zen.evaluate_expression("{a:1}")   == {'a': 1}
+    assert zen.evaluate_expression("{'a':1}") == {'a': 1}
+    assert zen.evaluate_expression('{"a":1}') == {'a': 1}
+
+    # 注意, object(context) 不支持字面量判断.
+    assert not zen.evaluate_expression('{"a":1}=={"a":1}')
+
     # 属性访问
     assert zen.evaluate_expression("customer.firstName", {"customer": 
       {    

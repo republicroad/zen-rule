@@ -604,3 +604,8 @@ $ uv pip compile pyproject.toml > requirements.txt
 
 [Configuring Logging for a Library](https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library)  
 [What are the uses of Null handler in python logging?](https://stackoverflow.com/a/76887486)  
+
+
+## reference
+
+[Setting up testing with pytest and uv](https://pydevtools.com/handbook/tutorial/setting-up-testing-with-pytest-and-uv/)  

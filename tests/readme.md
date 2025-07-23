@@ -206,3 +206,11 @@ pytest tests/zen/test_zen.py --setup-show
 > -l 显示出错的测试用例中的局部变量
 > -k 指定某一个测试用例执行
 > --setup-show  展示的单元测试 SETUP 和 TEARDOWN 的细节，展示测试依赖的加载和销毁顺序
+
+
+## reference
+
+[Python Developer Tooling Handbook](https://pydevtools.com/handbook/)
+
+[Publishing Your First Python Package to PyPI](https://pydevtools.com/handbook/tutorial/publishing-your-first-python-package-to-pypi/)
+[Setting up testing with pytest and uv](https://pydevtools.com/handbook/tutorial/setting-up-testing-with-pytest-and-uv/)  
