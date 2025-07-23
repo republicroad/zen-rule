@@ -81,6 +81,6 @@ def test_object(*args, **kwargs):
 
 if __name__ == "__main__":
     # test_string()
-    # test_string_comma()
+    test_string_comma()
     # test_arrary()
-    test_object()
+    # test_object()

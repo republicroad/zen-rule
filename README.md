@@ -397,6 +397,38 @@ password = <PyPI token>
 
 uv 在 python 开发中可以用于选择python解释器, 创建虚拟环境, 创建python应用包,  创建 python 库.
 
+### uv python包依赖设置
+
+在当前项目中或者 ~/.config/uv/uv.toml 或者 /etc/uv/uv.toml 填写下面的内容：
+
+uv.toml
+```toml
+[[index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true
+
+[[index]]
+url = "https://pypi.org/simple/"
+default = false
+
+```
+
+或者在当前的 pyproject.toml 加入
+
+```toml
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple/"
+default = false
+```
+
+[Configuration files](https://docs.astral.sh/uv/concepts/configuration-files/)  
+[tsinghua pypi](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/)  
+[How to set index url for uv like pip configurations](https://stackoverflow.com/questions/79603558/how-to-set-index-url-for-uv-like-pip-configurations)  
+[flat-indexes](https://docs.astral.sh/uv/concepts/indexes/#flat-indexes)  
 
 ### 管理 python 解释器(uv python)
 
@@ -544,3 +576,31 @@ pylib/
 2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
 
 pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _pylib.pth 
+
+
+### 依赖管理
+
+增加 pytest 作为开发依赖  
+```bash
+$ uv add --dev pytest
+```
+
+增加不同开发组依赖  
+```bash
+$ uv add --group lint ruff
+```
+
+[Managing dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies)  
+[Development dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies)  
+
+
+导出 requirements.txt 格式的依赖
+```bash
+$ uv pip compile pyproject.toml > requirements.txt
+```
+
+
+## logging
+
+[Configuring Logging for a Library](https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library)  
+[What are the uses of Null handler in python logging?](https://stackoverflow.com/a/76887486)  
