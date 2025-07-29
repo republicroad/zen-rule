@@ -46,8 +46,15 @@ class StringT:
     stop_word = {"'", '"'}
 
     @classmethod
-    def predict(cls, c):
+    def predict(cls, c, stack):
         return c in cls.stop_word
+
+    @classmethod
+    def predict_str_part(cls, c, stack):
+        if stack and stack[0] in StringT.stop_word: # 判断是否是引号中的 关键字符.
+            return True
+        else:
+            return False
 
     @classmethod
     def strip(cls, c):
@@ -95,10 +102,18 @@ class ArrayT:
     token_type: str = "array"
     Array_LEFT : str = "["
     Array_RIGHT: str = "]"
+    Array_COMMA: str = ","
 
     @classmethod
-    def predict(cls, c):
-        return c in {cls.Array_LEFT, cls.Array_RIGHT}
+    def predict(cls, c, stack):
+        array_predict =  c in {cls.Array_LEFT, cls.Array_RIGHT, cls.Array_COMMA}
+        if array_predict:
+            if StringT.predict_str_part(c, stack): # 判断是否是引号中的 关键字符.
+                return False
+            else:
+                return True
+        else:
+            return False
 
     @classmethod
     def parse_array_ast(cls, stack):
@@ -131,8 +146,16 @@ class ObjectT:
     Object_KEY_VALUE_SEP = ":"
 
     @classmethod
-    def predict(cls, c):
-        return c in {cls.Object_LEFT, cls.Object_RIGHT, cls.Object_KEY_VALUE_SEP}
+    def predict(cls, c, stack):
+        object_predict = c in {cls.Object_LEFT, cls.Object_RIGHT, cls.Object_KEY_VALUE_SEP}
+        if object_predict:
+            if StringT.predict_str_part(c, stack): # 判断是否是引号中的 关键字符.
+                return False
+            else:
+                return True
+        else:
+            return False
+
 
     @classmethod
     def parse_object_ast(cls, stack):
@@ -173,6 +196,24 @@ class FuncT:
     Func_LEFT : str = "("
     Func_RIGHT: str = ")"
     Func_ARGS_SEP  = ","
+
+    @classmethod
+    def predict(cls, c, stack):
+        """
+            因为字符串的识别是在词法作用解析时识别, 所以需要判断逗号是否在引号中.
+            # if StringT.predict_str_part(c, _mystack):
+            #     # 如果当前字符是逗号, 需要查看当前栈底是否有 ' 或者 " 符号, 如果是引号内的逗号, 那么此逗号不是参数的分隔符. 当前逗号是字符串的一部分，所以需要入栈.
+            #     _mystack.append(c)
+            #     # 数组不是原子类型，数组在语法解析中完成.
+        """
+        predict_funcion_meta =  c in {cls.Func_LEFT, cls.Func_RIGHT, cls.Func_ARGS_SEP}
+        if predict_funcion_meta:
+            if StringT.predict_str_part(c, stack):
+                return False
+            else:
+                return True
+        else:
+            return False
 
     @classmethod
     def predict_func_call(cls, c):
@@ -312,30 +353,12 @@ def func_lexer(s):
     for c in s:
         if c in string.whitespace or c == '':
             continue
-        if FuncT.Func_LEFT == c:
+        if FuncT.predict(c, _mystack):
             token = stack_token_lex(_mystack)
             if token:
-                tokens.append(token)
-            tokens.append(FuncT.Func_LEFT)
-        elif FuncT.Func_RIGHT == c:
-            # 完成右边括号匹配以后, 层级 -1.
-            token = stack_token_lex(_mystack)
-            if token:
-                tokens.append(token)
-            tokens.append(FuncT.Func_RIGHT)
-        elif FuncT.Func_ARGS_SEP == c:
-            # 因为字符串的识别是在词法作用解析时识别, 所以需要判断逗号是否在引号中.
-            if _mystack and _mystack[0] in StringT.stop_word:
-                # 如果当前字符是逗号, 需要查看当前栈底是否有 ' 或者 " 符号, 如果是引号内的逗号, 那么此逗号不是参数的分隔符. 当前逗号是字符串的一部分，所以需要入栈.
-                _mystack.append(c)
-                # 数组不是原子类型，数组在语法解析中完成.
-            else:
-                # 遇到逗号, 把前面的字符串组合为一个 token, 并在之后添加一个逗号用于分隔 token.
-                token = stack_token_lex(_mystack)
-                if token:
-                    tokens.append(token)
-                tokens.append(FuncT.Func_ARGS_SEP)
-        elif StringT.predict(c):
+                tokens.append(token)  # funcname
+            tokens.append(c)
+        elif StringT.predict(c, _mystack):
             _mystack.append(c)  # 引号入栈
             # 匹配开始和结尾的引号, 识别字符串 token.
             if len(_mystack) >= 2 and _mystack[0] in StringT.stop_word and _mystack[-1] == _mystack[0]:
@@ -343,13 +366,13 @@ def func_lexer(s):
                 token = stack_token_lex(_mystack)
                 if token:
                     tokens.append(token)
-        elif ArrayT.predict(c):  # ArrayT 识别出数组语法元素
+        elif ArrayT.predict(c, _mystack):  # ArrayT 识别出数组语法元素
             ### 这里的写法可以优化, append boudry char 是否可以放在 stack_token_lex 中完成.
             token = stack_token_lex(_mystack)
             if token:
                 tokens.append(token)
             tokens.append(c)
-        elif ObjectT.predict(c):  # ObjectT 识别出object语法元素
+        elif ObjectT.predict(c, _mystack):  # ObjectT 识别出object语法元素
             token = stack_token_lex(_mystack)
             if token:
                 tokens.append(token)
@@ -402,7 +425,7 @@ def func_ast_parser(tokens):
         elif token == FuncT.Func_ARGS_SEP:
             # 排除 ',' 号
             pass
-        elif ArrayT.predict(token):
+        elif ArrayT.predict(token, _stack):
             if token == ArrayT.Array_RIGHT:
                 # ArrayT.Array_RIGHT
                 # 出栈 匹配 ArrayT.Array_LEFT [ 即可.
@@ -411,7 +434,7 @@ def func_ast_parser(tokens):
                 _stack.append(array_item)
             else:
                 _stack.append(token)
-        elif ObjectT.predict(token):  # ObjectT 解析 object 结构
+        elif ObjectT.predict(token, _stack):  # ObjectT 解析 object 结构
             if token == ObjectT.Object_RIGHT:
                 _stack.append(token)
                 logger.warning(f'Object match:{_stack}')

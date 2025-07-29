@@ -29,6 +29,25 @@ def test_string(*args, **kwargs):
     pprint(expr_ast)
 
 
+def test_string_function(*args, **kwargs):
+    """
+        '18271902319'
+        '2025061611051974502'
+        '二次号'
+    """
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    # 兼容字符串中包含 ARGS_SPLIT 的情况 msg_test('18271902319,15607101196,18727622961'   , '2025061611051974502', 'xxx',)
+    ### sg_test('18271902319,15607101196,18727622961'   , '2025061611051974502'  , '二次号', [1,2,'3',4 ])
+    ### todo: object 类型需要解析.
+    ###  { firstName: 'John', lastName: 'Doe' }
+    func_call_s = "msg_test('18271902319', 'foo(bar, zoo)', '二次号')"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
+    expr_ast = zen_custom_expr_parse(func_call_s)
+    print("expr    :", func_call_s)
+    print("expr_ast:", expr_ast)
+    pprint(expr_ast)
+
+
 def test_string_comma(*args, **kwargs):
     """
         '18271902319,15607101196,18727622961'
@@ -48,6 +67,26 @@ def test_string_comma(*args, **kwargs):
     pprint(expr_ast)
 
 
+def test_string_colon(*args, **kwargs):
+    """
+        '18271902319,15607101196,18727622961'
+        '2025061611051974502'
+        '二次号'
+    """
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    # 兼容字符串中包含 ARGS_SPLIT 的情况 msg_test('18271902319,15607101196,18727622961'   , '2025061611051974502', 'xxx',)
+    ### sg_test('18271902319,15607101196,18727622961'   , '2025061611051974502'  , '二次号', [1,2,'3',4 ])
+    ### todo: object 类型需要解析.
+    ###  { firstName: 'John', lastName: 'Doe' }
+    a = {"a": "c"}
+    func_call_s = "http_call('http://httpbin.org/get', 'get', a)"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
+    expr_ast = zen_custom_expr_parse(func_call_s)
+    print("expr    :", func_call_s)
+    print("expr_ast:", expr_ast)
+    pprint(expr_ast)
+
+
 def test_arrary(*args, **kwargs):
     """
         test_arrary
@@ -55,7 +94,7 @@ def test_arrary(*args, **kwargs):
     logger.info(f"{inspect.stack()[0][3]} args:{args}")
     logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
     ### todo: array 中每一个元素的类型还需要解析.
-    func_call_s = "array_call([1,2,3], ['a', 'b', 'c'])"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
+    func_call_s = "array_call([1,2,3], ['a,b,c', 'foo(bar,zoo)', 'c'])"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
     expr_ast = zen_custom_expr_parse(func_call_s)
     print("array_call expr    :", func_call_s)
     print("array_call expr_ast:", expr_ast)
@@ -79,8 +118,13 @@ def test_object(*args, **kwargs):
     pprint(expr_ast)
 
 
+
+
+
 if __name__ == "__main__":
-    # test_string()
+    test_string()
+    test_string_function()
     test_string_comma()
-    # test_arrary()
-    # test_object()
+    test_string_colon()
+    test_arrary()
+    test_object()
