@@ -1,8 +1,18 @@
 import logging
+import os
 from pprint import pformat
 from typing import List, Dict, Any
 from inspect import signature, Parameter, iscoroutinefunction
+from pathlib import Path
 logger = logging.getLogger(__name__)
+
+
+def namespace_split(target, base="zenrule/functions"):
+    target_path = Path(target)
+    target_base = Path(base)
+    relative_path = target_path.relative_to(target_base)
+    return relative_path.parts
+
 
 # Define classes for managing function arguments and return values
 class FuncArg:
@@ -78,7 +88,8 @@ class UDFManager:
             "arglength": len(arguments),
             "arguments": [arg.to_dict() for arg in arguments],
             "return_values": return_values,
-            "comments": comments or func.__doc__
+            "comments": comments or func.__doc__,
+            "namespace": namespace_split(func.__module__.replace(".",os.sep)),
         }
 
     def get_udf_info(self) -> List[Dict[str, Any]]:
@@ -88,7 +99,9 @@ class UDFManager:
                 "arglength": data["arglength"],
                 "arguments": data["arguments"],
                 "return_values": data["return_values"],
-                "comments": data["comments"]
+                "comments": data["comments"],
+                "namespace": ".".join(data["namespace"]),
+                "kind": data["namespace"][-1]
             }
             for data in self.functions.values()
         ]
