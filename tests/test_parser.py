@@ -118,13 +118,29 @@ def test_object(*args, **kwargs):
     pprint(expr_ast)
 
 
+def test_function_args_expr(*args, **kwargs):
+    """
+        'member_id+string(totoal_fee)'
+        ip
+        "udf:foo(udf:bar(2  , rand(100),'a'), bas())"  "udf:foo(udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
+        foo(bar( 2,'a'), bas())
+    """
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
 
+    func_call_s = "group_distinct_1h(member_id - foo(totoal_fee, 34), ip)"  
+    # func_call_s = "group_distinct_1h(string(totoal_fee), ip)"
+    expr_ast = zen_custom_expr_parse(func_call_s)
+    print("expr    :", func_call_s)
+    print("expr_ast:", expr_ast)
+    pprint(expr_ast)
 
 
 if __name__ == "__main__":
-    test_string()
-    test_string_function()
-    test_string_comma()
-    test_string_colon()
-    test_arrary()
-    test_object()
+    # test_string()
+    # test_string_function()
+    # test_string_comma()
+    # test_string_colon()
+    # test_arrary()
+    # test_object()
+    test_function_args_expr()

@@ -609,3 +609,7 @@ $ uv pip compile pyproject.toml > requirements.txt
 ## reference
 
 [Setting up testing with pytest and uv](https://pydevtools.com/handbook/tutorial/setting-up-testing-with-pytest-and-uv/)  
+
+pypi src:
+
+- https://pypi.org/simple/
