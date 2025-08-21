@@ -1,0 +1,95 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "inputNode",
+      "position": {
+        "x": 180,
+        "y": 240
+      },
+      "name": "Request"
+    },
+    {
+      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "customNode",
+      "position": {
+        "x": 470,
+        "y": 240
+      },
+      "name": "customNode1",
+      "content": {
+        "kind": "sum",
+        "config": {
+          "version": "v3",
+          "meta": {
+            "user": "wanghao@geetest.com",
+            "proj": "proj_id"
+          },
+          "prop1": "{{ a + 10 }}",
+          "passThrough": true,
+          "inputField": null,
+          "outputPath": null,
+          "expressions": [
+            {
+              "id": "a7b82f73-92ed-4abe-b4b9-e3caf6436b9b",
+              "key": "num",
+              "_comment": "可以混合自定义函数和 zen 函数??? 在calludf中找不到就再zen expression 中去执行.",
+              "value": "rand(100)"
+            },
+            {
+              "id": "a7b82f73-92ed-4abe-b4b9-a3caf6436b9b",
+              "key": "zenmap1",
+              "value": "map([0..3], #)"
+            },
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "result",
+              "value": "udf:foo(myvar.var1,udf:bar(rand(100), udf:zoo(3,6),'a'), udf:bas())"
+            }
+          ],
+          "expr_asts": [
+            {
+              "id": "a7b82f73-92ed-4abe-b4b9-e3caf6436b9b",
+              "key": "num",
+              "value": [{"name": "rand", "args": [[100, "int"]], "ns": "", "id": "3e3f25c9a62c44348098040aac154f63"}]
+            },
+            {
+              "id": "a7b82f73-92ed-4abe-b4b9-a3caf6436b9b",
+              "key": "zenmap1",
+              "value": [{"name": "map", "args": [["[0..3]", "var"], ["#", "var"]], "ns": "", "id": "9b33f633ad614ad4b4231b543ff35df2"}]
+            },
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "result",
+              "value": [{"name": "rand", "args": [[100, "int"]], "ns": "", "id": "7316bdb397104326b1d9175d08c13fcd"}, {"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "udf", "id": "d4c88a45d16847c4b2fea3036699997e"}, {"name": "bar", "args": [[{"name": "rand", "args": [[100, "int"]], "ns": "", "id": "7316bdb397104326b1d9175d08c13fcd"}, "func_value"], [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "udf", "id": "d4c88a45d16847c4b2fea3036699997e"}, "func_value"], ["'a'", "string"]], "ns": "udf", "id": "f9d4cba09b4445ee855c268e33a14de9"}, {"name": "bas", "args": [], "ns": "udf", "id": "558c50f23a0641e2869b88b517fa1f7c"}, {"name": "foo", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "rand", "args": [[100, "int"]], "ns": "", "id": "7316bdb397104326b1d9175d08c13fcd"}, "func_value"], [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "udf", "id": "d4c88a45d16847c4b2fea3036699997e"}, "func_value"], ["'a'", "string"]], "ns": "udf", "id": "f9d4cba09b4445ee855c268e33a14de9"}, "func_value"], [{"name": "bas", "args": [], "ns": "udf", "id": "558c50f23a0641e2869b88b517fa1f7c"}, "func_value"]], "ns": "udf", "id": "df29bf6375904952ad7e4e7efb7a3de8"}]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
+      "type": "outputNode",
+      "position": {
+        "x": 780,
+        "y": 240
+      },
+      "name": "Response"
+    }
+  ],
+  "edges": [
+    {
+      "id": "05740fa7-3755-4756-b85e-bc1af2f6773b",
+      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "edge",
+      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
+    },
+    {
+      "id": "5d89c1d6-e894-4e8a-bd13-22368c2a6bc7",
+      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "edge",
+      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
+    }
+  ]
+}

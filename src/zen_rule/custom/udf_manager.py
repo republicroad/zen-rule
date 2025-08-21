@@ -89,7 +89,7 @@ class UDFManager:
             "arguments": [arg.to_dict() for arg in arguments],
             "return_values": return_values,
             "comments": comments or func.__doc__,
-            "namespace": namespace_split(func.__module__.replace(".",os.sep)),
+            # "namespace": namespace_split(func.__module__.replace(".",os.sep)),
         }
 
     def get_udf_info(self) -> List[Dict[str, Any]]:

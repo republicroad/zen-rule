@@ -172,9 +172,57 @@ async def test_zenrule_with_loader():
     print("zen rule custom_v2 result2:", result)
 
 
+async def test_zenrule_v3():
+    """
+        推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
+        规则图是 v2 版本, 执行引擎是 custom_handler_v2
+    """
+    # httpsession.set(object())  # 先设置 contextvars 再创建包含 custom_handler 的zen engine 实例, 自定义函数可以 contextvars get.
+    zr = ZenRule({})
+    # httpsession.set(object())
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / "custom_v3.json"
+    key = filename
+
+    if not zr.get_decision_cache(key):
+        # 根据实际情况去加载规则图的内容.
+        with open(filename, "r", encoding="utf8") as f:
+            logger.warning(f"graph json: %s", filename)
+            content =  f.read()
+        zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    for i in range(1):
+        result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+        print("zen rule custom_v3 result:", result)
+        print(f"------------------{i}------------------------")
+
+    # result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+    # print("zen rule custom_v3 result2:", result)
+
+
+async def test_zenrulev1_with_enginev3():
+    """
+        规则图是 v1 版本, 执行引擎是 custom_handler_v2
+    """
+    zr = ZenRule({})
+    key = "xxxx_rule"
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / "custom_v1.json"
+
+    with open(filename, "r", encoding="utf8") as f:
+        logger.warning(f"graph json: %s", filename)
+        content =  f.read()
+
+    zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
+    result = await zr.async_evaluate(key, {"ip": "1.2.3.4", "user": "17707115956"})
+    print("zen rule custom_v1 result:", result)
+
+
 if __name__ == "__main__":
     # test_zenrule
     # asyncio.run(test_zenrulev1_with_enginev1())
     # asyncio.run(test_zenrulev1_with_enginev2())
-    asyncio.run(test_zenrule())
+    # asyncio.run(test_zenrule())
     # asyncio.run(test_zenrule_with_loader())
+    # test_zenrule_v3
+    asyncio.run(test_zenrule_v3())
+    asyncio.run(test_zenrulev1_with_enginev3())
