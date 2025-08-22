@@ -204,9 +204,9 @@ async def test_zenrulev1_with_enginev3():
         规则图是 v1 版本, 执行引擎是 custom_handler_v2
     """
     zr = ZenRule({})
-    key = "xxxx_rule"
     basedir = Path(__file__).parent
     filename = basedir / "graph" / "custom_v1.json"
+    key = filename
 
     with open(filename, "r", encoding="utf8") as f:
         logger.warning(f"graph json: %s", filename)

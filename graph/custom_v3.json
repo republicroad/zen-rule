@@ -34,14 +34,14 @@
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": "foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);;3+4"
+              "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
             }
           ],
           "expr_asts": [
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)"]
+              "value": ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
             }
           ]
         }

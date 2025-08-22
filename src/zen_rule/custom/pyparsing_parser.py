@@ -123,9 +123,9 @@ def get_zen_object_array_parser(inner_func_originalText=False, debug=False, orig
             ZeroOrMore(Literal(".") + identifier + ZeroOrMore(index_slice_expr)))
  
     # Define the recursive nature of zen_value
-    ### 注意, 需要考虑 表达式的顺序, | 表示优先匹配选择, 左边的先匹配.
+    ### 注意, 需要考虑表达式的顺序,  ^ 代表或, 选择最长的模式去匹配解析, | 表示优先匹配选择, 左边的先匹配.
     # https://github.com/pyparsing/pyparsing/wiki/FAQ---Frequently-Asked-Questions#what-is-the-difference-between-or-and-matchfirst
-    zen_value <<= (function_call | slice_or_index | assignmentExpr| infix_expr | zen_array | zen_object)  # slice_expr index_expr
+    zen_value <<= ((function_call ^ infix_expr ^ slice_or_index ^ assignmentExpr) | zen_array | zen_object)  
     # zen_value <<= infix_expr  # 只调试中缀表达式
 
     # Define the top-level zen parser
@@ -141,5 +141,14 @@ zent_parser = get_zen_object_array_parser(original_statment=True, debug=False)
 if __name__ == "__main__":
     ### v3 格式调用
     test_string = "foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), a+string(xxx))" 
+    parsed_result = zent_parser.parseString(test_string)
+    print(f"{test_string} --> {parsed_result}")
+
+    test_string = "rand(100) >= 0 and rand(100) <= 100" 
+    parsed_result = zent_parser.parseString(test_string)
+    print(f"{test_string} --> {parsed_result}")
+
+
+    test_string = "a=3" 
     parsed_result = zent_parser.parseString(test_string)
     print(f"{test_string} --> {parsed_result}")
