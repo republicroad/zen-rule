@@ -140,7 +140,7 @@ zent_parser = get_zen_object_array_parser(original_statment=True, debug=False)
 
 if __name__ == "__main__":
     ### v3 格式调用
-    test_string = "foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), a+string(xxx))" 
+    test_string = "foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)" 
     parsed_result = zent_parser.parseString(test_string)
     print(f"{test_string} --> {parsed_result}")
 

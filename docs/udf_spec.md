@@ -18,15 +18,33 @@
 考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
 参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
 
-> foo;;myvar;;bar(zoo('fccdjny',6, 3.14),'a');; a+string(xxx)
+> foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
 
-表示 foo 算子传入了 三个参数:
+表示 foo 算子传入了五个参数:
 1. zen 表达式变量 myvar
-2. zen 表达式函数 bar(zoo('fccdjny',6, 3.14),'a')
-3. zen 表达式 a+string(xxx)
+2. zen 表达式函数 max([5, 8, 2, 11, 7])
+3. zen 表达式 rand(100)
+4. zen 表达式 'fccd;;jny'
+5. zen 表达式 3+4
 
-```c
-foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+
+解析后得到如下结构, 解释执行即可:
+
+> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "3+4"]
+
+解析逻辑如下:
+
+```python
+def parse_oprator_expr_v3(expr):
+    # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
+    # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
+    # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+    # expr.split(";;")
+    pattern = r""";;(?=(?:[^"']*["'][^"']*["'])*[^"']*$)"""
+    # To split the string by these semicolon:
+    _parts = re.split(pattern, expr)
+    parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
+    return parts
 ```
 
 ### 格式二
@@ -37,8 +55,20 @@ foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
 
 这部分需要使用上下无关文法定义解析或者peg语法解析.
 
-> foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), a+string(xxx))
+> foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
 
+
+解析后格式如下:
+
+> [["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
+
+此实现需要不断的去补充关于 zen 表达式语法结构的解析.  
+详细参考 tests/test_zen_expr_parser.py 中的实现. 
+```bash
+$ python '/home/ryefccd/workspace/zen-rule/tests/test_zen_expr_parser.py'
+foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
+...
+```
 
 
 ### 解析后格式
