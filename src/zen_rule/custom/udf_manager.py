@@ -7,15 +7,21 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def namespace_split(target, base="zenrule/functions"):
-    target_path = Path(target)
-    target_base = Path(base)
+def namespace_split(target,namespace=None) -> str:
+    if namespace:
+        return str(namespace)
     try:
-        relative_path = target_path.relative_to(target_base)
+        name_list = str(target).split(".")
+        new_name_list = []
+        for item in name_list:
+            if "functions" == item:
+                new_name_list = []
+            else:
+                new_name_list.append(item)
+        return ".".join(new_name_list)
     except Exception as e:
         logger.error(e, exc_info=True)
         return ""
-    return relative_path.parts
 
 
 # Define classes for managing function arguments and return values
@@ -63,7 +69,7 @@ class UDFManager:
         }
         self.default_type = "Any"
 
-    def register_function(self, func, comments:str =None, args_info: FuncArg =None, return_info: FuncRet =None):
+    def register_function(self, func, comments:str =None, args_info: FuncArg =None, return_info: FuncRet =None, namespace:str = None):
         sig = signature(func)
         arguments = []
 
@@ -93,7 +99,7 @@ class UDFManager:
             "arguments": [arg.to_dict() for arg in arguments],
             "return_values": return_values,
             "comments": comments or func.__doc__,
-            "namespace": namespace_split(func.__module__.replace(".",os.sep)),
+            "namespace": namespace_split(func.__module__,namespace=namespace),
         }
 
     def get_udf_info(self) -> List[Dict[str, Any]]:
@@ -104,8 +110,8 @@ class UDFManager:
                 "arguments": data["arguments"],
                 "return_values": data["return_values"],
                 "comments": data["comments"],
-                "namespace": ".".join(data["namespace"]),
-                "kind": data["namespace"][-1]
+                "namespace": data["namespace"],
+                "kind": data["namespace"].split(".")[-1]
             }
             for data in self.functions.values()
         ]
@@ -145,9 +151,9 @@ class UDFManager:
 udf_manager = UDFManager()
 
 # Decorator to register UDFs with optional custom metadata
-def udf(comments=None, args_info=None, return_info=None):
+def udf(comments=None, args_info=None, return_info=None,namespace=None):
     def decorator(func):
-        udf_manager.register_function(func, comments, args_info, return_info)
+        udf_manager.register_function(func, comments, args_info, return_info,namespace)
         return func
     return decorator
 
