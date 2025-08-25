@@ -291,11 +291,12 @@ class ZenRule:
             "node_id": request.node["id"],  ## 隔离 graph 中的节点
             "meta": request.node["config"].get("meta", {}),
         }
+        node_input_args = {k: v for k, v in request.input.items() if k != "$nodes"}
         for item in expr_asts:
-            coro_funcs.append(cls.engine_v3(item, request.input, context))
+            coro_funcs.append(cls.engine_v3(item, node_input_args, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
-        results.update({k: v for k, v in request.input.items() if k != "$nodes"})
+        results.update(node_input_args)
         logger.debug(results)
 
         return {

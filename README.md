@@ -135,6 +135,8 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
 ...
 ```
 
+目前使用 pyparsing 来解析, 将来考虑使用[lark](https://github.com/lark-parser/lark) 来做语法解析.
+
 ### 解析后格式
 
 ```json
