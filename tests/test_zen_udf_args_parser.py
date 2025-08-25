@@ -84,9 +84,6 @@ graphjson = """
   ]
 }
 """
-
-graphs = {"udf.json": graphjson}
-
 file_path = Path(__file__).parent / 'data/standard.csv'
 
 
@@ -95,7 +92,6 @@ class ExprEval:
     ## 使用 zen.evaluate_expression 求值 
     expr: str
     input: dict
-    ## 使用 zen.evaluate_expression 求值 
     output: str
 
 zen_expression_demos = []
@@ -114,6 +110,8 @@ with open(file_path) as csv_file:
     logger.debug(f'zen expressions: {len(zen_expression_demos)} rules.')
 
 
+# 默认情况下使用位置参数传参.
+# 如果有关键字参数, 那么同时也会使用关键字传参.
 @udf(
     comments="test udf foo",
     args_info=[
@@ -124,32 +122,32 @@ with open(file_path) as csv_file:
     return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
 )
 def foo(*args, **kwargs):
+    """
+        此测试传入一个参数, 将此参数当做返回值, 便于去做 assert.
+    """
     logger.debug(f"{inspect.stack()[0][3]} args:{args}")
     logger.debug(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
-    # return {"args": args, "kwargs": kwargs}
-    # 此测试永远传入一个参数, 将此参数当做返回值, 便于去做 assert.
-    # print("args:", args)
+    
     return args[0]
 
 
 def loader(key):
-    _graph =  graphs[key]
+    _graph =  graphjson
     return _graph
 
 
-def udf_args_helper(graph, rule):
+def udf_args_helper(graph, rule, expr_key):
     """
         把规则写在表达式的 value 中.
     """
     graph = json.loads(graph)
-    func_expr = f"foo;;{rule.expr}"
+    func_call_expr = f"{foo.__name__};;{rule.expr}"
     for node in graph["nodes"]:
         if node["type"] == "customNode":
-          # udf_expressions = node["content"]["config"]["expressions"]
           udf_expr = {
             "id": str(uuid.uuid4()),
-            "key": "out",
-            "value": func_expr
+            "key": expr_key,
+            "value": func_call_expr
           }
           node["content"]["config"]["expressions"] = [udf_expr]
     logger.debug(f"{rule.expr} graph:{graph}")
@@ -165,12 +163,13 @@ async def test_zenrule():
     key = "udf.json"
     for i, rule in enumerate(zen_expression_demos):
       logger.info(f"round: {i}")
-      content = udf_args_helper(graphjson, rule)
+      expr_key = str(i)
+      content = udf_args_helper(graphjson, rule, expr_key)
       zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
-      output = await zr.async_evaluate(key, rule.input)
-      out = output.get("result").get("out")
-      logger.info(f'expr: "{rule.expr}" input: {rule.input} expect: {rule.output} --> result: {out}')
-      assert out == zen.evaluate_expression(rule.output)
+      result = await zr.async_evaluate(key, rule.input)
+      output = result.get("result").get(expr_key)
+      logger.info(f'expr: "{rule.expr}" input: {rule.input} expect: {rule.output} --> result: {output}')
+      assert output == zen.evaluate_expression(rule.output)
       zr.delete_decision_with_cache_key(key)
 
 
