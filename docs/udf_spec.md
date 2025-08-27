@@ -30,7 +30,7 @@
 
 解析后得到如下结构, 解释执行即可:
 
-> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "3+4"]
+> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
 
 解析逻辑如下:
 
@@ -250,91 +250,6 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
 
 ```
 
-## parser
-
-`python tests/test_parser.py` 以普通python程序运行测试程序.
-
-### number
-
-### string
-
-解析字符串中不包含逗号
-
-```python
-    func_call_s = "msg_test('18271902319', '2025061611051974502', 'xxx')"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
-    expr_ast = zen_custom_expr_parse(func_call_s)
-    print("expr    :", func_call_s)
-    print("expr_ast:", expr_ast)
-    pprint(expr_ast)
-```
-
-
-解析字符串中包含逗号
-```python
-    func_call_s = "msg_test('18271902319,15607101196,18727622961', '2025061611051974502', 'xxx')"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
-    expr_ast = zen_custom_expr_parse(func_call_s)
-    print("expr    :", func_call_s)
-    print("expr_ast:", expr_ast)
-    pprint(expr_ast)
-```
-
-### array
-
-```python
-    func_call_s = "array_call([1,2,3], ['a', 'b', 'c'])"  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
-    expr_ast = zen_custom_expr_parse(func_call_s)
-    print("array_call expr    :", func_call_s)
-    print("array_call expr_ast:", expr_ast)
-    pprint(expr_ast)
-```
-
-### object
-
-对函数调用中的 object 字面量进行解析.
-```python
-    func_call_s = """object_call({customer: { firstName: "John", lastName: "Doe" }}, ['a', 'b', 'c'])"""  # 增加对 ['a', 'b', 'c'] 数组类型的解析.  # 已经实现支持
-    expr_ast = zen_custom_expr_parse(func_call_s)
-    print("object_call expr    :", func_call_s)
-    print("object_call expr_ast:", expr_ast)
-    pprint(expr_ast)
-```
-
-
-Parsing Non-Strict JavaScript Objects (e.g., with single quotes, comments, trailing commas)
-
-- [chompjs](https://github.com/Nykakin/chompjs): Designed specifically for parsing JavaScript objects that are not strictly JSON.
-
-```python
-    import chompjs
-
-    js_object_string = "{ name: 'Bob', hobbies: ['reading', 'hiking'], /* a comment */ }"
-    python_dict = chompjs.parse_js_object(js_object_string)
-
-    print(python_dict)
-```
-
-- PyYAML:  Can parse a broader range of formats, including a subset of JavaScript object notation.
-
-```python
-    import yaml
-
-    js_object_string = """
-    {
-        name: 'Charlie',
-        data: {
-            value: 123,
-            status: true,
-        }
-    }
-    """
-    python_dict = yaml.safe_load(js_object_string)
-
-    print(python_dict)
-```
-
-[How to convert raw javascript object to a dictionary?](https://stackoverflow.com/questions/24027589/how-to-convert-raw-javascript-object-to-a-dictionary)  
-
-
 ### custom node spec v2
 
 将函数调用解析为抽象语法树后解释执行:
@@ -423,13 +338,41 @@ Parsing Non-Strict JavaScript Objects (e.g., with single quotes, comments, trail
 
 ```
 
-使用示例如下:
+
+## 语法解析
+
+### Non-Strict JavaScript Objects
+
+Parsing Non-Strict JavaScript Objects (e.g., with single quotes, comments, trailing commas)
+
+- [chompjs](https://github.com/Nykakin/chompjs): Designed specifically for parsing JavaScript objects that are not strictly JSON.
 
 ```python
+    import chompjs
 
-async def ast_exec():
-    v = [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, {"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, {"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, {"name": "foo", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, "func_value"], [{"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, "func_value"]], "ns": "", "id": "0c509d4654ef443eb621d791d3ffcaa1"}]
+    js_object_string = "{ name: 'Bob', hobbies: ['reading', 'hiking'], /* a comment */ }"
+    python_dict = chompjs.parse_js_object(js_object_string)
 
-    await ast_exec(v, {"input": 7, "myvar": 15}, {"node_id": "nodexxxxx", "meta": {}})
+    print(python_dict)
 ```
 
+- PyYAML:  Can parse a broader range of formats, including a subset of JavaScript object notation.
+
+```python
+    import yaml
+
+    js_object_string = """
+    {
+        name: 'Charlie',
+        data: {
+            value: 123,
+            status: true,
+        }
+    }
+    """
+    python_dict = yaml.safe_load(js_object_string)
+
+    print(python_dict)
+```
+
+[How to convert raw javascript object to a dictionary?](https://stackoverflow.com/questions/24027589/how-to-convert-raw-javascript-object-to-a-dictionary)  

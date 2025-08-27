@@ -11,7 +11,6 @@ import inspect
 import zen
 from zen import ZenDecision
 from .custom.udf_manager import udf_manager, udf, FuncArg, FuncRet
-from .custom.func_engine_v2 import ast_exec, zen_custom_expr_parse
 from .custom import op_args_combination, parse_oprator_expr_v3
 # from zen import EvaluateResponse  # cannot import
 zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
@@ -219,39 +218,6 @@ class ZenRule:
             "output": res
         }
 
-    @classmethod
-    async def custom_handler_v2(cls, request):
-        """
-            v2 支持字面量的自定义函数的表达式, 和普通函数类似, 也支持函数表达式的嵌套调用.
-            参考 src/custom/custom_v2.json 中的示例.
-            兼容 custom_handler_v1 元数据定义和执行逻辑.
-        """
-        # logger.debug(f"request.node:{request.node}")
-        # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
-        expr_asts = request.node["config"].get("expr_asts", [])
-        # if not expr_asts and request.node["config"].get("inputs"):  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
-        #     logger.debug("custom node use custom_handler_v1")
-        #     return await cls.custom_handler_v1(request)
-        logger.debug("custom node use custom_handler_v2")
-        coro_funcs = []
-        results = {}
-        context = {
-            "node_id": request.node["id"],  ## 隔离 graph 中的节点
-            "meta": request.node["config"].get("meta", {}),
-        }
-        for item in expr_asts:
-            # result = await ast_exec(item, request.input, context)
-            # out_res[key] = result
-            # coro_funcs.append(ast_exec(item["value"], request.input, context))
-            coro_funcs.append(ast_exec(item, request.input, context))
-        _results = await asyncio.gather(*coro_funcs)
-        results = {k["key"]: v for k, v in zip(expr_asts, _results)}
-        results.update({k: v for k, v in request.input.items() if k != "$nodes"})
-        logger.debug(results)
-
-        return {
-            "output": results
-        }
 
     @classmethod
     async def custom_handler_v3(cls, request):

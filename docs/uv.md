@@ -1,26 +1,78 @@
 
 # uv
 
-## develop
+## best practice
 
-### 初始化包
-初始化一个 python 库的包结构,
+### 创建python应用包
+
+#### uv init without package
+
+`uv init pyapp` 即可创建python应用包的结构. 应用由一个入口程序 main.py 和一个项目描述文件 pyproject.toml 构成.
 
 ```bash
-uv init --lib .
-uv init --lib zen-rule
+uv init pyapp
+
+(.venv) $ tree -a pyapp/
+pyapp/
+├── main.py
+├── pyproject.toml
+└── README.md
+```
+
+`uv add fastapi` 可以添加应用依赖.
+
+
+#### uv init with package
+
+`uv init pyapp2 --package` 即可创建python应用包的结构. 应用由一个入口程序包 src/pyapp2 一个项目描述文件 pyproject.toml 构成.
+
+```bash
+(.venv) $ tree -a pyapp2
+pyapp2
+├── pyproject.toml
+├── README.md
+└── src
+    └── pyapp2
+        └── __init__.py
+```
+
+### 创建 python 库
+
+初始化一个 `python 库`的包结构,
+
+```bash
+uv init --lib pylib
+
+(.venv) $ tree -a pylib/
+pylib/
+├── pyproject.toml
+├── README.md
+└── src
+    └── pylib
+        ├── __init__.py
+        └── py.typed
 ```
 
 uv init 默认把程序放在 src 文件夹下(src文件夹下无 __init__.py 文件, 不是python模块). 
 
-### 本地开发
 
-程序开发时，需要对开发的包进行测试. 有两种方法:
+如何对开发库进行测试:  
+以 zen-rule 项目为例, 使用如下命令构建开发环境，安装依赖库  
 
-1. 将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.
-2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
+> uv pip install -e .
 
-pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _zen_rule.pth 
+使用此命令将当前包以编辑模式(--editable, -e)安装在当前的虚拟环境中, 这样可以使用 `python main.py` 运行程序即可.(或者将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.py)
+
+```bash
+(zen-rule) ryefccd@republic:~/workspace/zen-rule$ uv pip list
+Package                  Version Editable project location
+------------------------ ------- --------------------------------
+...                      ...
+zen-engine               0.49.1
+zen-rule                 0.10.1  /home/ryefccd/workspace/zen-rule
+```
+
+此命令在依赖库中安装了一个指向当前开发代码的链接文件 _zen_rule.pth 
 
 ```bash
 (.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/zen_rule-0.1.0.dist-info/RECORD 
@@ -36,6 +88,29 @@ zen_rule-0.1.0.dist-info/uv_cache.json,sha256=f86k5FOHVCQBiOmxV_ANc62kP71iNC1Mc8
 (.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/_zen_rule.pth 
 /home/ryefccd/workspace/zen-rule/src
 ```
+
+
+### 依赖管理
+
+增加 pytest 作为开发依赖  
+```bash
+$ uv add --dev pytest
+```
+
+增加不同开发组依赖  
+```bash
+$ uv add --group lint ruff
+```
+
+[Managing dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies)  
+[Development dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies)  
+
+
+导出 requirements.txt 格式的依赖
+```bash
+$ uv pip compile pyproject.toml > requirements.txt
+```
+
 
 ### 包构建
 
@@ -66,15 +141,6 @@ password = <PyPI token>
 [Using a PyPI token](https://packaging.python.org/en/latest/specifications/pypirc/#using-a-pypi-token)  
 [Building and publishing a package](https://docs.astral.sh/uv/guides/package/#publishing-your-package)  
 
-## monorepo(multi develop packages dependencies)
-
-[uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#using-workspaces)
-
-
-
-## uv 
-
-uv 在 python 开发中可以用于选择python解释器, 创建虚拟环境, 创建python应用包,  创建 python 库.
 
 ### uv python包依赖设置
 
@@ -109,7 +175,12 @@ default = false
 [How to set index url for uv like pip configurations](https://stackoverflow.com/questions/79603558/how-to-set-index-url-for-uv-like-pip-configurations)  
 [flat-indexes](https://docs.astral.sh/uv/concepts/indexes/#flat-indexes)  
 
+
+## uv commands
+
 ### 管理 python 解释器(uv python)
+
+uv 在 python 开发中可以用于选择python解释器, 创建虚拟环境, 创建python应用包,  创建 python 库.
 
 #### `uv python list` 
 
@@ -198,82 +269,6 @@ error: No interpreter found for Python 3.13 in virtual environments, managed ins
 `uv run python -c "import sys;print(sys.executable)"` 
 
 
-### 创建python应用包
+## monorepo(multi develop packages dependencies)
 
-#### uv init without package
-
-`uv init pyapp` 即可创建python应用包的结构. 应用由一个入口程序 main.py 和一个项目描述文件 pyproject.toml 构成.
-
-```bash
-uv init pyapp
-
-(.venv) $ tree -a pyapp/
-pyapp/
-├── main.py
-├── pyproject.toml
-└── README.md
-```
-
-`uv add fastapi` 可以添加应用依赖.
-
-
-#### uv init with package
-
-`uv init pyapp2 --package` 即可创建python应用包的结构. 应用由一个入口程序包 src/pyapp2 一个项目描述文件 pyproject.toml 构成.
-
-```bash
-(.venv) $ tree -a pyapp2
-pyapp2
-├── pyproject.toml
-├── README.md
-└── src
-    └── pyapp2
-        └── __init__.py
-```
-
-### 创建 python 库
-
-```bash
-uv init --lib pylib
-
-(.venv) $ tree -a pylib/
-pylib/
-├── pyproject.toml
-├── README.md
-└── src
-    └── pylib
-        ├── __init__.py
-        └── py.typed
-```
-
-`uv add zen-engine` 可以添加库依赖.
-
-如何对开发库进行测试:
-程序开发时，需要对开发的包进行测试. 有两种方法:
-
-1. 将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.
-2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
-
-pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _pylib.pth 
-
-
-### 依赖管理
-
-增加 pytest 作为开发依赖  
-```bash
-$ uv add --dev pytest
-```
-
-增加不同开发组依赖  
-```bash
-$ uv add --group lint ruff
-```
-
-[Managing dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies)  
-[Development dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies)  
-
-
-导出 requirements.txt 格式的依赖
-```bash
-$ uv pip compile pyproject.toml > requirements.txt
-```
+[uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#using-workspaces)
