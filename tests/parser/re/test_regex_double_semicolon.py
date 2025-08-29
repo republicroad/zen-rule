@@ -2,7 +2,7 @@
 # ; is semicolon
 import re
 
-text = "foo ;; myvar ;;  bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)"
+text = r"""foo;;myvar ;;max([5,8,2,11, 7]);;rand(100)+120;;3+4;; 'singel;;quote' ;;"double;;quote" ;;`backquote;; ${bar}`"""
 
 # Regex to find commas not inside double quotes
 # This regex works by matching a comma that is NOT followed by an even number of quotes
@@ -10,7 +10,7 @@ text = "foo ;; myvar ;;  bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)"
 # It essentially checks if there's an odd number of quotes after the comma,
 # implying it's inside a quoted string.
 # This pattern is more robust for simple cases without escaped quotes inside strings.
-pattern = r""";;(?=(?:[^"']*["'][^"']*["'])*[^"']*$)"""
+pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
 
 # Find all matches
 double_semicolon_outside_quotes = re.findall(pattern, text)

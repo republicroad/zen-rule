@@ -17,7 +17,7 @@ def parse_oprator_expr_v3(expr):
     """
         v3自定义节点中的算子 oprater 调用支持两种格式:
         1.  ;; 当作起始符号且作为oprater及参数的分隔符
-            foo;;myvar;;bar(zoo('fccdjny',6, 3.14),'a');; a+string(xxx) ;;
+            foo;;myvar ;;max([5,8,2,11, 7]);;rand(100)+120;;3+4;; 'singel;;quote' ;;"double;;quote" ;;`backquote;; ${bar}`
 
         2. 使用函数调用嵌套(todo:以后支持)
             foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), a+string(xxx))
@@ -27,7 +27,7 @@ def parse_oprator_expr_v3(expr):
     # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
     # expr.split(";;")
     ## todo: 是否将此模式编译
-    pattern = r""";;(?=(?:[^"']*["'][^"']*["'])*[^"']*$)"""
+    pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
     # To split the string by these semicolon:
     _parts = re.split(pattern, expr)
     parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格

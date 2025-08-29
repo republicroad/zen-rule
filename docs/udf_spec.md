@@ -37,10 +37,9 @@
 ```python
 def parse_oprator_expr_v3(expr):
     # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
-    # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
-    # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+    # foo;;myvar ;;max([5,8,2,11, 7]);;rand(100)+120;;3+4;; 'singel;;quote' ;;"double;;quote" ;;`backquote;; ${bar}`
     # expr.split(";;")
-    pattern = r""";;(?=(?:[^"']*["'][^"']*["'])*[^"']*$)"""
+    pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
     # To split the string by these semicolon:
     _parts = re.split(pattern, expr)
     parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
