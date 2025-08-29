@@ -37,7 +37,7 @@ def parse_oprator_expr_v3(expr):
     # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
     # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
     # expr.split(";;")
-    pattern = r""";;(?=(?:[^"']*["'][^"']*["'])*[^"']*$)"""
+    pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
     # To split the string by these semicolon:
     _parts = re.split(pattern, expr)
     parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
