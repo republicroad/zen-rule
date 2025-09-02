@@ -21,9 +21,9 @@ async def test_zenrule():
         推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
     """
     zr = ZenRule({})
-    key = "xxxx_rule"
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v2.json"
+    filename = basedir / "graph" / "custom_v3.json"
+    key = filename
 
     if not zr.get_decision_cache(key):
         # 根据实际情况去加载规则图的内容.
@@ -32,7 +32,7 @@ async def test_zenrule():
             content =  f.read()
         zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
     result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result:", result)
+    print("zen rule custom_v3 result:", result)
 ```
 
 
@@ -53,225 +53,148 @@ def loader(key):
 async def test_zenrule_with_loader():
     zr = ZenRule({"loader": loader})
 
-    result = await zr.async_evaluate("custom_v2.json", {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result:", result)
+    result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
+    print("zen rule custom_v3 result:", result)
 
-    result = await zr.async_evaluate("custom_v2.json", {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result2:", result)
-
-    result = await zr.async_evaluate("custom_v2_parse.json", {"input": 7, "myvar": 15})
-    print("zen rule custom_v2 result2:", result)
-
+    result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
+    print("zen rule custom_v3 result2:", result)
 ```
 
+示例程序请参考 main.py, 运行 python main.py 即可运行测试示例.  
 
 包含自定义函数示例的规则:  
-[custom_v2.json](graph/custom_v2.json)  
+[custom_v3.json](graph/custom_v3.json)  
+
+
+
+## 自定义算子规范v3
+
+在决策引擎中, 自定义算子主要承担外部数据查询, 状态交互, 以及一些自定义功能拓展. 
+考虑到界面中会对自定义算子进行分类, 这时候在某个自定义类别的节点中只能访问这个类别的函数,
+这样有利于降低最后用户的使用难度. 
+
+
+![alt text](docs/custom_nodes.png)  
+
+
+### 格式一
+
+如果支持不同自定义算子的嵌套, 那么这些节点分类就形同虚设.
+考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
+参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
+
+> foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+
+表示 foo 算子传入了五个参数:
+1. zen 表达式变量 myvar
+2. zen 表达式函数 max([5, 8, 2, 11, 7])
+3. zen 表达式 rand(100)
+4. zen 表达式 'fccd;;jny'
+5. zen 表达式 3+4
+
+
+解析后得到如下结构, 解释执行即可:
+
+> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
+
+解析逻辑如下:
+
+```python
+def parse_oprator_expr_v3(expr):
+    # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
+    # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
+    # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+    # expr.split(";;")
+    pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
+    # To split the string by these semicolon:
+    _parts = re.split(pattern, expr)
+    parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
+    return parts
+```
+
+### 格式二
+
+第二种就是保留技术更为熟悉的函数嵌套调用结构.
+这种格式需要解析函数的嵌套调用, 还需要解析各种常量语法结构, 比如 数字， 布尔，字符串，数组，object对象, 
+以及各种数组和字符串下标索引访问和切片访问语法格式, 还有中缀表达式(算术运算和逻辑运算), 非空判定, 三元表达式.
+
+这部分需要使用上下无关文法定义解析或者peg语法解析.
+
+> foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
+
+
+解析后格式如下:
+
+> [["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
+
+此实现需要不断的去补充关于 zen 表达式语法结构的解析.  
+详细参考 tests/test_zen_expr_parser.py 中的实现. 
+```bash
+$ python '/home/ryefccd/workspace/zen-rule/tests/test_zen_expr_parser.py'
+foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
+...
+```
+
+目前使用 pyparsing 来解析, 将来考虑使用[lark](https://github.com/lark-parser/lark) 来做语法解析.
+
+### 解析后格式
 
 ```json
 {
-  "contentType": "application/vnd.gorules.decision",
-  "nodes": [
-    {
-      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
-      "type": "inputNode",
-      "position": {
-        "x": 180,
-        "y": 240
-      },
-      "name": "Request"
+    "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+    "type": "customNode",
+    "position": {
+    "x": 470,
+    "y": 240
     },
-    {
-      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
-      "type": "customNode",
-      "position": {
-        "x": 470,
-        "y": 240
-      },
-      "name": "customNode1",
-      "content": {
-        "kind": "sum",
-        "config": {
-          "version": "v2",
-          "meta": {
-            "user": "wanghao@geetest.com",
-            "proj": "proj_id"
-          },
-          "prop1": "{{ a + 10 }}",
-          "passThrough": true,
-          "inputField": null,
-          "outputPath": null,
-          "expressions": [
-            {
-              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
-              "key": "result",
-              "value": "foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())"
-            }
-          ]
+    "name": "customNode1",
+    "content": {
+    "kind": "sum",
+    "config": {
+        "version": "v2",
+        "meta": {
+        "user": "wanghao@geetest.com",
+        "proj": "proj_id"
+        },
+        "prop1": "{{ a + 10 }}",
+        "passThrough": true,
+        "inputField": null,
+        "outputPath": null,
+        "expressions": [/*expressions 是约定的前端格式*/
+        {
+            "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+            "key": "result",
+            "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
         }
-      }
-    },
-    {
-      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
-      "type": "outputNode",
-      "position": {
-        "x": 780,
-        "y": 240
-      },
-      "name": "Response"
+        ],
+        "expr_asts": [/*expr_asts 是后端解析动态产生的*/
+        {
+            "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+            "key": "result",
+            "value": ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
+        }
+        ]
     }
-  ],
-  "edges": [
-    {
-      "id": "05740fa7-3755-4756-b85e-bc1af2f6773b",
-      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
-      "type": "edge",
-      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
-    },
-    {
-      "id": "5d89c1d6-e894-4e8a-bd13-22368c2a6bc7",
-      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
-      "type": "edge",
-      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
     }
-  ]
 }
-
 ```
 
-
-## custom node spec v2
-
-将函数调用解析为抽象语法树后解释执行:
-
-> foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())
-
-解析后得到如下语法树, 解释执行即可:
-
-```python
-[
-    {
-        "name": "zoo",
-        "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]],
-        "ns": "",
-        "id": "566a36f923b34cbd9c159272adc988ae",
-    },
-    {
-        "name": "bar",
-        "args": [
-            [
-                {
-                    "name": "zoo",
-                    "args": [
-                        ["'fccdjny'", "string"],
-                        [6, "int"],
-                        [3.14, "float"],
-                    ],
-                    "ns": "",
-                    "id": "566a36f923b34cbd9c159272adc988ae",
-                },
-                "func_value",
-            ],
-            ["'a'", "string"],
-        ],
-        "ns": "",
-        "id": "5d0b81e086d748d4902a35fd85bad974",
-    },
-    {
-        "name": "bas",
-        "args": [],
-        "ns": "",
-        "id": "7f8448aad2594b479f6df2e2241707c7",
-    },
-    {
-        "name": "foo",
-        "args": [
-            ["myvar", "var"],
-            [
-                {
-                    "name": "bar",
-                    "args": [
-                        [
-                            {
-                                "name": "zoo",
-                                "args": [
-                                    ["'fccdjny'", "string"],
-                                    [6, "int"],
-                                    [3.14, "float"],
-                                ],
-                                "ns": "",
-                                "id": "566a36f923b34cbd9c159272adc988ae",
-                            },
-                            "func_value",
-                        ],
-                        ["'a'", "string"],
-                    ],
-                    "ns": "",
-                    "id": "5d0b81e086d748d4902a35fd85bad974",
-                },
-                "func_value",
-            ],
-            [
-                {
-                    "name": "bas",
-                    "args": [],
-                    "ns": "",
-                    "id": "7f8448aad2594b479f6df2e2241707c7",
-                },
-                "func_value",
-            ],
-        ],
-        "ns": "",
-        "id": "0c509d4654ef443eb621d791d3ffcaa1",
-    },
-]
-
-```
-
-使用示例如下:
-
-```python
-
-async def ast_exec():
-    v = [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, {"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, {"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, {"name": "foo", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, "func_value"], [{"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, "func_value"]], "ns": "", "id": "0c509d4654ef443eb621d791d3ffcaa1"}]
-
-    await ast_exec(v, {"input": 7, "myvar": 15}, {"node_id": "nodexxxxx", "meta": {}})
-```
 
 ## develop
 
-### 初始化包
-初始化一个 python 库的包结构,
+使用如下命令构建开发环境，安装依赖库  
+
+> uv pip install -e .
+
+使用此命令将当前包以编辑模式(--editable, -e)安装在当前的虚拟环境中, 这样可以使用 `python main.py` 运行程序即可.
 
 ```bash
-uv init --lib .
-uv init --lib zen-rule
-```
-
-uv init 默认把程序放在 src 文件夹下(src文件夹下无 __init__.py 文件, 不是python模块). 
-
-### 本地开发
-
-程序开发时，需要对开发的包进行测试. 有两种方法:
-
-1. 将 src 包加入 sys.path 中, 或者使用 PYTHONPATH=src python main.
-2. 使用 `uv pip install -e .` 将开发包以编辑模式安装到系统依赖 site-packages 中.
-
-pip install -e 在依赖库中安装了一个指向当前开发代码的链接文件 _zen_rule.pth 
-
-```bash
-(.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/zen_rule-0.1.0.dist-info/RECORD 
-_zen_rule.pth,sha256=_hfX66NqcOptirPAFCr8WKBAxzevMvwcwIzxoCuR0Gc,36
-zen_rule-0.1.0.dist-info/INSTALLER,sha256=5hhM4Q4mYTT9z6QB6PGpUAW81PGNFrYrdXMj4oM_6ak,2
-zen_rule-0.1.0.dist-info/METADATA,sha256=KaQQLhC57VzmOx1iV40tKN6UPI9eQ6Mh2VM0dGUR_fA,777
-zen_rule-0.1.0.dist-info/RECORD,,
-zen_rule-0.1.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-zen_rule-0.1.0.dist-info/WHEEL,sha256=qtCwoSJWgHk21S1Kb4ihdzI2rlJ1ZKaIurTj_ngOhyQ,87
-zen_rule-0.1.0.dist-info/direct_url.json,sha256=oUFJmKTIsuVYL6vu1pBc1kSxaxyaYoYahIAj2sIEEts,78
-zen_rule-0.1.0.dist-info/uv_cache.json,sha256=f86k5FOHVCQBiOmxV_ANc62kP71iNC1Mc8Zz69AMbvM,89
-
-(.venv) ryefccd@republic:~/workspace/zen-rule$ cat .venv/lib/python3.10/site-packages/_zen_rule.pth 
-/home/ryefccd/workspace/zen-rule/src
+(zen-rule) ryefccd@republic:~/workspace/zen-rule$ uv pip list
+Package                  Version Editable project location
+------------------------ ------- --------------------------------
+...                      ...
+zen-engine               0.49.1
+zen-rule                 0.10.1  /home/ryefccd/workspace/zen-rule
 ```
 
 ### 包构建
@@ -303,6 +226,21 @@ password = <PyPI token>
 [Using a PyPI token](https://packaging.python.org/en/latest/specifications/pypirc/#using-a-pypi-token)  
 [Building and publishing a package](https://docs.astral.sh/uv/guides/package/#publishing-your-package)  
 
-## monorepo(multi develop packages dependencies)
 
-[uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#using-workspaces)
+## unit tests
+
+增加多个python版本的测试.
+
+## logging
+
+[Configuring Logging for a Library](https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library)  
+[What are the uses of Null handler in python logging?](https://stackoverflow.com/a/76887486)  
+
+
+## reference
+
+[Setting up testing with pytest and uv](https://pydevtools.com/handbook/tutorial/setting-up-testing-with-pytest-and-uv/)  
+
+pypi src:
+
+- https://pypi.org/simple/

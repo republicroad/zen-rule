@@ -1,0 +1,315 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "name": "myRequest",
+      "content": {
+        "outputs": [
+          {
+            "field": "output",
+            "id": "8fc91cbf-e9ee-445b-8502-ae2000e8a5da",
+            "name": "Output",
+            "type": "expression"
+          }
+        ],
+        "rules": [],
+        "inputs": [
+          {
+            "id": "3c117b42-871d-470d-85ef-db5b9dad3183",
+            "key": "list_1",
+            "type": "list",
+            "value": "list_1fbfaa70b71c4885",
+            "desc": ""
+          },
+          {
+            "id": "1e64583e-9755-4711-90d4-107ac89f5d4c",
+            "key": "ip1",
+            "type": "string",
+            "value": "127.0.04"
+          },
+          {
+            "id": "a6c89c8d-c3b8-40cc-bb1a-762c8463063d",
+            "key": "tag",
+            "type": "string",
+            "value": "ttt"
+          },
+          {
+            "id": "70cf8059-f8c7-4d5a-a106-00700830c8da",
+            "key": "st",
+            "type": "datetime",
+            "value": "2024-08-13 00:00:00",
+            "desc": ""
+          },
+          {
+            "id": "af60dab3-5673-4f0f-b558-c39fce401f0e",
+            "key": "et",
+            "type": "datetime",
+            "value": "2024-08-22 00:00:00",
+            "desc": ""
+          },
+          {
+            "id": "caa4589a-b36b-4ad4-9535-e6bc647b36c5",
+            "key": "ip3",
+            "type": "string",
+            "value": "1111"
+          },
+          {
+            "id": "deba8243-6cdc-4623-ae78-6b562e80a1c0",
+            "key": "ip2",
+            "type": "string",
+            "value": "2222"
+          }
+        ]
+      },
+      "id": "e86831d7-7531-4fec-9b18-31cf6f55292c",
+      "position": {
+        "x": 15,
+        "y": 140
+      },
+      "type": "inputNode"
+    },
+    {
+      "name": "customNode_UDF1",
+      "content": {
+        "kind": "UDF",
+        "config": {
+          "inputs": [
+            {
+              "id": "0094e246-291f-41dd-928a-3d63361e45fb",
+              "key": "func1",
+              "type": "function",
+              "arg_exprs": {
+                "list_id": "list_1",
+                "value": "ip1"
+              },
+              "funcmeta": {
+                "name": "custom_list_query",
+                "arglength": 2,
+                "arguments": [
+                  {
+                    "arg_name": "list_id",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "选择名单"
+                  },
+                  {
+                    "arg_name": "value",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "查询数据"
+                  }
+                ],
+                "return_values": {
+                  "value": "",
+                  "tag": "",
+                  "start_time": "",
+                  "end_time": "",
+                  "result": ""
+                },
+                "comments": "custom list query"
+              }
+            },
+            {
+              "id": "904c674e-e4c4-4179-82fb-c8a4652213cb",
+              "key": "func2",
+              "type": "function",
+              "arg_exprs": {
+                "list_id": "list_1",
+                "value": "ip2",
+                "tag": "tag",
+                "start_time": "st",
+                "end_time": "et"
+              },
+              "funcmeta": {
+                "name": "custom_list_add",
+                "arglength": 5,
+                "arguments": [
+                  {
+                    "arg_name": "list_id",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "选择名单"
+                  },
+                  {
+                    "arg_name": "value",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "名单数据"
+                  },
+                  {
+                    "arg_name": "tag",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "备注"
+                  },
+                  {
+                    "arg_name": "start_time",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "生效时间"
+                  },
+                  {
+                    "arg_name": "end_time",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "失效时间"
+                  }
+                ],
+                "return_values": {
+                  "result": ""
+                },
+                "comments": "custom list add"
+              }
+            },
+            {
+              "id": "3ca78345-d47f-40b6-bfa2-e63913afcd0e",
+              "key": "func3",
+              "type": "function",
+              "arg_exprs": {
+                "list_id": "list_1",
+                "value": "ip3"
+              },
+              "funcmeta": {
+                "name": "custom_list_remove",
+                "arglength": 2,
+                "arguments": [
+                  {
+                    "arg_name": "list_id",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "选择名单"
+                  },
+                  {
+                    "arg_name": "value",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "名单数据"
+                  }
+                ],
+                "return_values": {
+                  "result": ""
+                },
+                "comments": "custom list remove"
+              }
+            }
+          ]
+        },
+        "outputs": [
+          {
+            "field": "output",
+            "id": "9556eb54-fb48-45bf-b28b-3692a21caab3",
+            "name": "Output",
+            "type": "expression"
+          }
+        ],
+        "rules": []
+      },
+      "id": "8597966f-e169-4342-b544-925700c456c5",
+      "position": {
+        "x": 450,
+        "y": 125
+      },
+      "type": "customNode"
+    },
+    {
+      "name": "myResponse",
+      "id": "65bb83aa-da86-4ea0-a610-f26ec9b42ce4",
+      "position": {
+        "x": 870,
+        "y": 130
+      },
+      "type": "outputNode"
+    },
+    {
+      "name": "customNode_UDF2",
+      "content": {
+        "kind": "UDF",
+        "config": {
+          "inputs": [
+            {
+              "id": "145a682a-06ba-431e-9cf6-9175738678e0",
+              "key": "cnt1",
+              "type": "function",
+              "arg_exprs": {
+                "mykey": "ip1"
+              },
+              "funcmeta": {
+                "name": "rate_1m",
+                "arglength": 1,
+                "arguments": [
+                  {
+                    "arg_name": "mykey",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "统计字段或者表达式"
+                  }
+                ],
+                "return_values": {
+                  "mykey": "",
+                  "counter": "",
+                  "ttl": ""
+                },
+                "comments": "最近 1min 的统计函数"
+              }
+            },
+            {
+              "id": "8c7225ee-2c6f-4f5b-8047-0da7a99816d2",
+              "key": "cnt2",
+              "type": "function",
+              "arg_exprs": {
+                "mykey": "ip1"
+              },
+              "funcmeta": {
+                "name": "rate_1m",
+                "arglength": 1,
+                "arguments": [
+                  {
+                    "arg_name": "mykey",
+                    "arg_type": "string",
+                    "defaults": "",
+                    "comments": "统计字段或者表达式"
+                  }
+                ],
+                "return_values": {
+                  "mykey": "",
+                  "counter": "",
+                  "ttl": ""
+                },
+                "comments": "最近 1min 的统计函数"
+              }
+            }
+          ]
+        },
+        "outputs": [
+          {
+            "field": "output",
+            "id": "989679e5-753a-46d2-aae2-4fcbe0150ed5",
+            "name": "Output",
+            "type": "expression"
+          }
+        ],
+        "rules": []
+      },
+      "id": "84da2b1a-1a80-4037-87bd-6ca87fd017ff",
+      "position": {
+        "x": 400,
+        "y": -130
+      },
+      "type": "customNode"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c09895ba-df48-400f-9131-fa705a396382",
+      "sourceId": "e86831d7-7531-4fec-9b18-31cf6f55292c",
+      "type": "edge",
+      "targetId": "84da2b1a-1a80-4037-87bd-6ca87fd017ff"
+    },
+    {
+      "id": "76393ea5-665c-4e07-b37c-4e3109c6a2b0",
+      "sourceId": "84da2b1a-1a80-4037-87bd-6ca87fd017ff",
+      "type": "edge",
+      "targetId": "65bb83aa-da86-4ea0-a610-f26ec9b42ce4"
+    }
+  ]
+}

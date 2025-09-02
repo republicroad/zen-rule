@@ -10,8 +10,9 @@ import inspect
 import zen
 from zen import ZenDecision
 from .custom.udf_manager import udf_manager, udf, FuncArg, FuncRet
-from .custom.func_engine_v2 import ast_exec, zen_custom_expr_parse
+from .custom import op_args_combination, parse_oprator_expr_v3
 # from zen import EvaluateResponse  # cannot import
+zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
 logger = logging.getLogger(__name__)
 
 class EvaluateResponse(TypedDict):
@@ -51,17 +52,17 @@ def loader(key):
 
 class ZenRule:
     def __init__(self, options: Optional[dict] = None) -> None: 
-        # {"customHandler": self.custom_handler_v2, "loader": self.loader}
+        # {"customHandler": self.custom_handler_v3, "loader": self.loader}
         if options:
             ### loader 如果是异步函数, ZenEngine 的 get_decision 方法就会 hang 住. 这个需要在 rust 中去调整.
             loader = options.get("loader")
             if loader and inspect.iscoroutinefunction(loader):
                 raise RuntimeError("loader is not allowed using async def, please use sync function definition")
             if not options.get("customHandler"):
-                options["customHandler"] = self.custom_handler_v2
+                options["customHandler"] = self.custom_handler_v3
             self.options = options
-        else: # custom_async_handler self.custom_handler_v2
-            self.options = {"customHandler": self.custom_handler_v2}
+        else: # custom_async_handler self.custom_handler_v3
+            self.options = {"customHandler": self.custom_handler_v3}
         self.engine = zen.ZenEngine(self.options)
 
         self.decision_cache = {}  # key -> zen decision instance
@@ -71,8 +72,8 @@ class ZenRule:
         """
             如果不想 decision 被缓存, 那么请使用 create_decision 方法来获取 decision.
         """
-        content_ = self._parse_graph_nodes(content)
-        # logger.debug(f"after _parse_graph_nodes: {content_}")
+        content_ = self.graph_addons(content)
+        # logger.debug(f"after graph_addons: {content_}")
         return self.engine.create_decision(content_)
 
     def create_decision_with_cache_key(self, key, content) -> ZenDecision:
@@ -133,7 +134,7 @@ class ZenRule:
         logger.debug(f"async_evaluate decision: {decision}")
         return decision.async_evaluate(ctx, options)
 
-    def _parse_graph_nodes(self, graph_content):
+    def graph_addons(self, graph_content):
         if isinstance(graph_content, dict):
             rule_graph = graph_content
         elif isinstance(graph_content, str):
@@ -168,8 +169,8 @@ class ZenRule:
                             func_name = func_item["funcmeta"]["name"]
                             v1_arg_exprs = func_item["arg_exprs"]
                             args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
-                            args_ = ",".join([j for _, j in args])
-                            func_call = f"{func_name}({args_})"
+                            args_ = ";;".join([j for _, j in args])
+                            func_call = f"{func_name};;{args_}"
                             d = {
                                 "id": id,
                                 "key": key,
@@ -177,9 +178,9 @@ class ZenRule:
                             }
                             expressions.append(d)
 
-                        # 将 v1 格式转化为 v2 的格式. 然后统一使用解析, 将函数调用表达式得到的抽象语法树保存下来.
+                        # 将 v1 格式转化为 v3 的格式. 然后统一使用解析, 将函数调用表达式得到的执行格式保存下来.
                         node["content"]["config"]["expressions"] = expressions
-                        node["content"]["config"]["version"] = "v2"
+                        node["content"]["config"]["version"] = "v3"
                         # 是否删除 inputs 字段?
 
                 ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
@@ -188,7 +189,7 @@ class ZenRule:
                 if custom_expressions:
                     for func_item in custom_expressions:
                         item = {**func_item}
-                        item["value"] = zen_custom_expr_parse(func_item["value"])
+                        item["value"] = parse_oprator_expr_v3(func_item["value"])
                         expr_asts.append(item)
                     node["content"]["config"]["expr_asts"] = expr_asts
 
@@ -224,12 +225,31 @@ class ZenRule:
             "output": res
         }
 
+
     @classmethod
-    async def custom_handler_v2(cls, request):
+    async def custom_handler_v3(cls, request):
         """
             v2 支持字面量的自定义函数的表达式, 和普通函数类似, 也支持函数表达式的嵌套调用.
             参考 src/custom/custom_v2.json 中的示例.
             兼容 custom_handler_v1 元数据定义和执行逻辑.
+
+            为了简化决策引擎的使用, 决策引擎决定按照不同自定义节点算子的作用对自定义节点进行分类.
+            v3 版本不支持 自定义算子 和 zen 表达式函数混合调用, 也不支持 自定义算子的嵌套调用.
+            为了方便对自定义算子的参数中的复杂 zen 表达式进行解析，拟支持如下两种格式:
+
+            foo;;myvar;;bar(zoo('fccdjny',6, 3.14),'a');; a+string(xxx)
+
+            foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), a+string(xxx))
+
+            这两种解析后得到的结果如下(json数组):
+            ['foo', 'myvar', "bar(zoo('fccdjny',6, 3.14),'a')", ' a+string(xxx)']
+
+            表示 foo 算子传入了 三个参数:
+            1. zen 表达式变量 myvar
+            2. zen 表达式函数 bar(zoo('fccdjny',6, 3.14),'a')
+            3. zen 表达式 a+string(xxx)
+            注意, 需要对 v1 版本和 v2 版本进行兼容.
+            因为 v2 版本并未正式上线, 主要是对 v1 版本进行兼容.
         """
         # logger.debug(f"request.node:{request.node}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
@@ -237,27 +257,69 @@ class ZenRule:
         # if not expr_asts and request.node["config"].get("inputs"):  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
         #     logger.debug("custom node use custom_handler_v1")
         #     return await cls.custom_handler_v1(request)
-        logger.debug("custom node use custom_handler_v2")
+        logger.debug("custom node use custom_handler_v3")
         coro_funcs = []
         results = {}
         context = {
             "node_id": request.node["id"],  ## 隔离 graph 中的节点
             "meta": request.node["config"].get("meta", {}),
         }
+        node_input_args = {k: v for k, v in request.input.items() if k != "$nodes"}
         for item in expr_asts:
-            # result = await ast_exec(item, request.input, context)
-            # out_res[key] = result
-            coro_funcs.append(ast_exec(item["value"], request.input, context))
+            coro_funcs.append(cls.engine_v3(item, node_input_args, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
+        results.update(node_input_args)
         logger.debug(results)
 
         return {
             "output": results
         }
 
+    @classmethod
+    # async def engine_v3(cls, item, node_input, context):
+    async def engine_v3(cls, exec_expr, node_input, context={}): 
+        """
+            item 代表自定义节点中的一个函数
+            node_input 是此自定义节点的入参
+            context 是额外传递的上下文(希望未来 zen-engine 直接支持此参数, 用于传入一些全局参数, 比如服务实例, trace_id等)
+
+            exec_expr:
+            ['foo', 'myvar', "bar(zoo('fccdjny',6, 3.14),'a')", ' a+string(xxx)']
+        """
+        try:
+            expr_id = exec_expr["id"]
+            expr_ast = exec_expr["value"]
+            expr_key = exec_expr["key"]
+            
+            operator, *op_arg_expressions  = expr_ast
+            logger.debug(f"node_input:{node_input}  context:{context}")
+            logger.debug(f"operator:{operator}  args:{op_arg_expressions}")
+            func_name = operator
+            f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
+            args = [zen_exprs_eval(i, node_input) for i in op_arg_expressions]
+            oprator_kwargs = op_args_combination(args, f)
+            logger.debug(f"ast_exec {func_name} args: {args}")
+            logger.debug(f"ast_exec {func_name} kwargs: {oprator_kwargs}")
+            kwargs = {
+                **oprator_kwargs,
+                **context,
+                "func_id": expr_id,
+                "expr_id": expr_id,
+            }
+            result = await udf_manager(func_name, *args, **kwargs)
+            logger.debug(f"{func_name} calling ->: {result}")
+            return result
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            # todo: 异常情况下自定义算子返回什么, 空字符串还是null.
+            return None
+
     def get_decision_cache(self, key):
         return self.decision_cache.get(key, None)
+
+
+
 
 __all__ = [
     ZenRule,

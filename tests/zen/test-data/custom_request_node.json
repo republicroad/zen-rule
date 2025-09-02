@@ -1,0 +1,279 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "inputNode",
+      "position": {
+        "x": 80,
+        "y": 210
+      },
+      "name": "Request",
+      "content": {
+        "inputs": [
+          {
+            "id": "f5d8b464-c16d-401c-837c-ecdecadf1928",
+            "key": "user",
+            "type": "string",
+            "value": "tanhua"
+          },
+          {
+            "id": "14092131-db5f-4e77-a9e3-fda01169123b",
+            "key": "ip",
+            "type": "string",
+            "value": "1.2.3.4"
+          },
+          {
+            "id": "4817b4c1-4d86-43bc-9fa8-b7a0006b9adc",
+            "key": "rolling_user",
+            "type": "function",
+            "value": {
+              "mykey": [
+                "user"
+              ]
+            },
+            "desc": {
+              "name": "rate_1m",
+              "args": [
+                "mykey"
+              ],
+              "tips": [
+                "请输入频率计算参数"
+              ]
+            }
+          },
+          {
+            "id": "982ce10c-667d-46cb-ab52-85005a401f0d",
+            "key": "rolling_ip",
+            "type": "function",
+            "value": {
+              "mykey": [
+                "ip"
+              ]
+            },
+            "desc": {
+              "name": "rate_1h",
+              "args": [
+                "mykey"
+              ],
+              "tips": [
+                "请输入频率计算参数"
+              ]
+            }
+          },
+          {
+            "id": "3a208c9c-92b2-4ef2-922c-5cd17cc748c4",
+            "key": "user_distinct_ip",
+            "type": "function",
+            "value": {
+              "group": [
+                "user"
+              ],
+              "distinct": [
+                "ip"
+              ]
+            },
+            "desc": {
+              "name": "group_distinct_1m",
+              "args": [
+                "group",
+                "distinct"
+              ],
+              "tips": [
+                "请输入分组参数",
+                "请输入去重参数"
+              ]
+            }
+          },
+          {
+            "id": "ca24c858-cdcc-4b33-92b7-d79741d1e971",
+            "key": "device_id",
+            "type": "string",
+            "value": "did1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "customNode",
+      "position": {
+        "x": 1010,
+        "y": 120
+      },
+      "name": "customNode_hook",
+      "content": {
+        "kind": "hook/pythonlang",
+        "config": {
+          "inputs": [
+            {
+              "id": "f14cdcc1-5342-41a2-979a-556976b3c8a8",
+              "key": "myrate1m",
+              "type": "function",
+              "funcmeta": {
+                "name": "rate_1m",
+                "args": [
+                  "mykey"
+                ],
+                "tips": [
+                  "请输入频率计算参数"
+                ]
+              }
+            },
+            {
+              "id": "0e4d45f1-0ad0-4edc-a474-44afa9430920",
+              "key": "user_distict_ip",
+              "type": "function",
+              "funcmeta": {
+                "name": "group_distinct_1m",
+                "args": [
+                  "group",
+                  "distinct"
+                ],
+                "tips": [
+                  "请输入分组参数",
+                  "请输入去重参数"
+                ]
+              }
+            }
+          ],
+          "prop1": "{{ a + 10 }}"
+        }
+      }
+    },
+    {
+      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
+      "type": "outputNode",
+      "position": {
+        "x": 1265,
+        "y": 175
+      },
+      "name": "Response"
+    },
+    {
+      "id": "30f3ca5e-4065-4859-8810-6a075cd8d52a",
+      "type": "switchNode",
+      "position": {
+        "x": 365,
+        "y": 175
+      },
+      "name": "switch1",
+      "content": {
+        "statements": [
+          {
+            "id": "592fa485-68d4-4767-a50c-11fa1814446b",
+            "condition": "a>=10"
+          },
+          {
+            "id": "9362977b-0175-4ad8-bf35-81ee15430716",
+            "condition": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "8284e0b9-d3ba-4617-8a6c-86682ee24425",
+      "type": "customNode",
+      "position": {
+        "x": 980,
+        "y": 495
+      },
+      "name": "customNode2",
+      "content": {
+        "kind": "sum2",
+        "expressions": [],
+        "config": {}
+      }
+    },
+    {
+      "id": "abf1997f-6def-4aa0-bb34-45d2ec69e859",
+      "type": "decisionTableNode",
+      "position": {
+        "x": 680,
+        "y": 420
+      },
+      "name": "decisionTable1",
+      "content": {
+        "hitPolicy": "first",
+        "inputs": [
+          {
+            "id": "811eb920-b7d9-4531-a3f8-00dbd1263ef5",
+            "type": "expression",
+            "field": "a",
+            "name": "a"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "2a4f9fa2-b45e-477b-991b-8f7689130ed7",
+            "type": "expression",
+            "field": "a",
+            "name": "a"
+          }
+        ],
+        "rules": [
+          {
+            "_id": "0c80665f-2b63-41c4-b3d6-bf58cecab994",
+            "811eb920-b7d9-4531-a3f8-00dbd1263ef5": "9",
+            "2a4f9fa2-b45e-477b-991b-8f7689130ed7": "1"
+          },
+          {
+            "_id": "b3f522de-ccd2-4e87-8244-3173e2f28cdf",
+            "811eb920-b7d9-4531-a3f8-00dbd1263ef5": "8",
+            "2a4f9fa2-b45e-477b-991b-8f7689130ed7": "2"
+          },
+          {
+            "_id": "2da3fe61-8626-4360-9d9a-4fd1164aae0a",
+            "811eb920-b7d9-4531-a3f8-00dbd1263ef5": "7",
+            "2a4f9fa2-b45e-477b-991b-8f7689130ed7": "3"
+          },
+          {
+            "_id": "1c14939d-ac6e-4941-9464-16f8ae62cbf1",
+            "811eb920-b7d9-4531-a3f8-00dbd1263ef5": "",
+            "2a4f9fa2-b45e-477b-991b-8f7689130ed7": "10-a"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "5d89c1d6-e894-4e8a-bd13-22368c2a6bc7",
+      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "edge",
+      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
+    },
+    {
+      "id": "3e69dc56-c5a2-45e1-920b-b5e22c45dfab",
+      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "edge",
+      "targetId": "30f3ca5e-4065-4859-8810-6a075cd8d52a"
+    },
+    {
+      "id": "218ca426-e29b-4048-a88d-54afcb8fd657",
+      "sourceId": "30f3ca5e-4065-4859-8810-6a075cd8d52a",
+      "type": "edge",
+      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "sourceHandle": "592fa485-68d4-4767-a50c-11fa1814446b"
+    },
+    {
+      "id": "23018106-427c-421d-b37e-a197d9bbf285",
+      "sourceId": "8284e0b9-d3ba-4617-8a6c-86682ee24425",
+      "type": "edge",
+      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
+    },
+    {
+      "id": "754d6af8-ba48-4a33-8dd9-e0d9293f7583",
+      "sourceId": "30f3ca5e-4065-4859-8810-6a075cd8d52a",
+      "type": "edge",
+      "targetId": "abf1997f-6def-4aa0-bb34-45d2ec69e859",
+      "sourceHandle": "9362977b-0175-4ad8-bf35-81ee15430716"
+    },
+    {
+      "id": "6cd48826-6177-45e3-a95a-e61f2761372e",
+      "sourceId": "abf1997f-6def-4aa0-bb34-45d2ec69e859",
+      "type": "edge",
+      "targetId": "8284e0b9-d3ba-4617-8a6c-86682ee24425"
+    }
+  ]
+}
