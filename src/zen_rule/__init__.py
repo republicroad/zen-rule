@@ -73,8 +73,8 @@ class ZenRule:
         """
             如果不想 decision 被缓存, 那么请使用 create_decision 方法来获取 decision.
         """
-        content_ = self._parse_graph_nodes(content)
-        # logger.debug(f"after _parse_graph_nodes: {content_}")
+        content_ = self.graph_addons(content)
+        # logger.debug(f"after graph_addons: {content_}")
         return self.engine.create_decision(content_)
 
     def create_decision_with_cache_key(self, key, content) -> ZenDecision:
@@ -135,7 +135,7 @@ class ZenRule:
         logger.debug(f"async_evaluate decision: {decision}")
         return decision.async_evaluate(ctx, options)
 
-    def _parse_graph_nodes(self, graph_content):
+    def graph_addons(self, graph_content):
         rule_graph = json.loads(graph_content)
         ## 在 loader 和 create_decision 中隐式调用.
         ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
