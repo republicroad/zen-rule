@@ -159,11 +159,11 @@ class ZenRule:
             ## 如果当前 v1_func 的 id 不在 v3_func_ids 中, 那么就添加到 v3 的func表达式中
             if func_item["id"] not in v3_func_ids:
                 node["content"]["config"]["expressions"].append(d)
-            else:
-                # 如果在 v3_func_ids 中, 那么更新此 v3_func
-                for item in node["content"]["config"]["expressions"]:
-                    if item["id"] == func_item["id"]:
-                        item.update(d)
+            # else:
+            #     # 如果在 v3_func_ids 中, 那么更新此 v3_func
+            #     for item in node["content"]["config"]["expressions"]:
+            #         if item["id"] == func_item["id"]:
+            #             item.update(d)
 
     def _custom_node_v3_to_v1(self, node):
         v3_funcs = node["content"]["config"].get("expressions", [])
@@ -225,10 +225,11 @@ class ZenRule:
                 node["content"]["config"]["meta"] = meta
 
                 node["content"]["config"]["version"] = "v3"
-                # 新版编辑器完全上线后，需要线下把所有v1格式转化为 v3 格式.
+                # # 新版编辑器完全上线后，需要线下把所有v1格式转化为 v3 格式.
+                ## 只需要将 v1 格式增量转化为 v3 格式, 目前前端实现了v1和v3的兼容, 所以后端不需要将 v3 格式转化为 v1.
                 self._custom_node_v1_to_v3(node)
-                # 旧版本编辑器移除后, 需要线下把所有v1格式转化为 v3 格式，并移除此代码(顺便可以去掉v1格式, 即删除content config inputs 字段).
-                self._custom_node_v3_to_v1(node)
+                # # 旧版本编辑器移除后, 需要线下把所有v1格式转化为 v3 格式，并移除此代码(顺便可以去掉v1格式, 即删除content config inputs 字段).
+                # self._custom_node_v3_to_v1(node)
 
                 ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
                 expr_asts = []
