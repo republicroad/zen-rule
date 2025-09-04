@@ -244,3 +244,6 @@ password = <PyPI token>
 pypi src:
 
 - https://pypi.org/simple/
+
+
+json diff: https://jsoncrack.com/editor
