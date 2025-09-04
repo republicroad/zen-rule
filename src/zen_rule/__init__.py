@@ -135,65 +135,47 @@ class ZenRule:
         return decision.async_evaluate(ctx, options)
 
     def _custom_node_v1_to_v3(self, node):
-        v1_inputs = node["content"]["config"].get("inputs", [])
-        expressions = []
-        for func_item in v1_inputs:
-            id = func_item["id"]
-            key = func_item["key"]
+        v3_funcs = node["content"]["config"].get("expressions", [])
+        v3_func_ids = {i["id"] for i in v3_funcs}
+        v1_funcs = node["content"]["config"].get("inputs", [])
+        v1_func_ids = {i["id"] for i in v1_funcs}
+
+        if not v3_funcs:
+            node["content"]["config"]["expressions"] = []
+        if not v1_funcs:
+            node["content"]["config"]["inputs"] = []
+
+        for func_item in node["content"]["config"]["inputs"]:  # 遍历 v1 的输入函数 v3_func_ids
             func_name = func_item["funcmeta"]["name"]
             v1_arg_exprs = func_item["arg_exprs"]
             args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
             args_ = ";;".join([j for _, j in args])
             func_call = f"{func_name};;{args_}"
             d = {
-                "id": id,
-                "key": key,
+                "id": func_item["id"],
+                "key": func_item["key"],
                 "value": func_call
             }
-            expressions.append(d)
-
-        ## 将 v1 格式转化为 v3 的格式. 然后统一使用解析, 将函数调用表达式得到的执行格式保存下来.
-        # node["content"]["config"]["expressions"] = expressions
-        ## 将 expressions 的值合并到  node["content"]["config"]["expressions"]中.
-        node["content"]["config"]["expressions"] = node["content"]["config"]["expressions"].extend(expressions)
+            ## 如果当前 v1_func 的 id 不在 v3_func_ids 中, 那么就添加到 v3 的func表达式中
+            if func_item["id"] not in v3_func_ids:
+                node["content"]["config"]["expressions"].append(d)
+            else:
+                # 如果在 v3_func_ids 中, 那么更新此 v3_func
+                for item in node["content"]["config"]["expressions"]:
+                    if item["id"] == func_item["id"]:
+                        item.update(d)
 
     def _custom_node_v3_to_v1(self, node):
-        v1_func_item = {
-            "id": "dc60a968-1161-4455-a1ef-77f4112e5958",
-            "key": "a",
-            "type": "function",
-            "arg_exprs": {
-                "group": "ip",
-                "distinct": "user"
-            },
-            "funcmeta": {
-                "name": "group_distinct_1m_demo",
-                "arglength": 2,
-                "arguments": [
-                    {
-                    "arg_name": "group",
-                    "arg_type": "string",
-                    "defaults": "",
-                    "comments": "统计分组键表达式"
-                    },
-                    {
-                    "arg_name": "distinct",
-                    "arg_type": "string",
-                    "defaults": "",
-                    "comments": "统计分组键下的去重字段"
-                    }
-                ],
-                "return_values": {
-                    "group": "",
-                    "distinct": "",
-                    "pv": "0",
-                    "uv": "0",
-                    "gpv": "0",
-                    "ttl": "0"
-                },
-                "comments": "最近1分钟的分组去重统计函数"
-            }
-        }
+        v3_funcs = node["content"]["config"].get("expressions", [])
+        v3_func_ids = {i["id"] for i in v3_funcs}
+        v1_funcs = node["content"]["config"].get("inputs", [])
+        v1_func_ids = {i["id"] for i in v1_funcs}
+
+        if not v3_funcs:
+            node["content"]["config"]["expressions"] = []
+        if not v1_funcs:
+            node["content"]["config"]["inputs"] = []
+
         for func_item in node["content"]["config"]["expressions"]:
             expr_ast = parse_oprator_expr_v3(func_item["value"])
             operator, *op_arg_expressions  = expr_ast
@@ -201,7 +183,7 @@ class ZenRule:
             f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
             # args = [zen_exprs_eval(i, node_input) for i in op_arg_expressions]
             oprator_kwargs = op_args_combination(op_arg_expressions, f)
-            item = {
+            d = {
                 "id": func_item["id"],
                 "key": func_item["key"],
                 "type": "function",
@@ -214,8 +196,12 @@ class ZenRule:
                     "comments": f["comments"]
                 }
             }
-            ## 是否需要判断 v3 的函数都合并到 v1 还是添加到 v1.
-            node["content"]["config"]["inputs"] = node["content"]["config"]["inputs"].append(item)
+            if func_item["id"] not in v1_func_ids:
+                node["content"]["config"]["inputs"].append(d)
+            else:
+               for item in node["content"]["config"]["inputs"]:
+                    if item["id"] == func_item["id"]:
+                        item.update(d)
 
     def graph_addons(self, graph_content):
         if isinstance(graph_content, dict):
@@ -238,33 +224,11 @@ class ZenRule:
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
 
-                # config 中从 v2 spec 开始就必须有 version 字段.
-                # config 中如果没有 version, 那么就是 v1 版本.
-                custom_node_version = node["content"]["config"].get("version", "v1")
-                if custom_node_version  == "v1":
-                    ### 将自定义节点格式v1转换为 v2 格式.
-                    v1_inputs = node["content"]["config"].get("inputs", [])
-                    if v1_inputs:
-                        expressions = []
-                        for func_item in v1_inputs:
-                            id = func_item["id"]
-                            key = func_item["key"]
-                            func_name = func_item["funcmeta"]["name"]
-                            v1_arg_exprs = func_item["arg_exprs"]
-                            args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
-                            args_ = ";;".join([j for _, j in args])
-                            func_call = f"{func_name};;{args_}"
-                            d = {
-                                "id": id,
-                                "key": key,
-                                "value": func_call
-                            }
-                            expressions.append(d)
-
-                        # 将 v1 格式转化为 v3 的格式. 然后统一使用解析, 将函数调用表达式得到的执行格式保存下来.
-                        node["content"]["config"]["expressions"] = expressions
-                        node["content"]["config"]["version"] = "v3"
-                        # 是否删除 inputs 字段?
+                node["content"]["config"]["version"] = "v3"
+                # 新版编辑器完全上线后，需要线下把所有v1格式转化为 v3 格式.
+                self._custom_node_v1_to_v3(node)
+                # 旧版本编辑器移除后, 需要线下把所有v1格式转化为 v3 格式，并移除此代码(顺便可以去掉v1格式, 即删除content config inputs 字段).
+                self._custom_node_v3_to_v1(node)
 
                 ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
                 expr_asts = []

@@ -30,8 +30,8 @@ def foo(*args, **kwargs):
 @udf(
     comments="group_distinct_1m_demo function",
     args_info=[
-        # FuncArg(arg_name="group", arg_type="string", defaults="", comments="var group"),
-        # FuncArg(arg_name="distinct", arg_type="string", defaults="", comments="var distinct"),
+        FuncArg(arg_name="group", arg_type="string", defaults="", comments="var group"),
+        FuncArg(arg_name="distinct", arg_type="string", defaults="", comments="var distinct"),
     ],
     return_info=FuncRet(field_type="object", examples={}, comments="返回值示例, 字段解释")     
 )
