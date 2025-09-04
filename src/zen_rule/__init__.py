@@ -159,11 +159,11 @@ class ZenRule:
             ## 如果当前 v1_func 的 id 不在 v3_func_ids 中, 那么就添加到 v3 的func表达式中
             if func_item["id"] not in v3_func_ids:
                 node["content"]["config"]["expressions"].append(d)
-            # else:
-            #     # 如果在 v3_func_ids 中, 那么更新此 v3_func
-            #     for item in node["content"]["config"]["expressions"]:
-            #         if item["id"] == func_item["id"]:
-            #             item.update(d)
+            else:
+                # 如果在 v3_func_ids 中, 那么更新此 v3_func
+                for item in node["content"]["config"]["expressions"]:
+                    if item["id"] == func_item["id"]:
+                        item.update(d)
 
     def _custom_node_v3_to_v1(self, node):
         v3_funcs = node["content"]["config"].get("expressions", [])
