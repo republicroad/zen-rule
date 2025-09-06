@@ -134,7 +134,10 @@ class ZenRule:
         logger.debug(f"async_evaluate decision: {decision}")
         return decision.async_evaluate(ctx, options)
 
-    def _custom_node_v1_to_v3(self, node):
+    def custom_node_v1_to_v3(self, node):
+        """
+            将 v1 版本的自定义节点转化为 v3 版本
+        """
         v3_funcs = node["content"]["config"].get("expressions", [])
         v3_func_ids = {i["id"] for i in v3_funcs}
         v1_funcs = node["content"]["config"].get("inputs", [])
@@ -165,7 +168,12 @@ class ZenRule:
                     if item["id"] == func_item["id"]:
                         item.update(d)
 
-    def _custom_node_v3_to_v1(self, node):
+    def custom_node_v3_to_v1(self, node):
+        """
+            将 v3 版本的自定义节点转化为 v1 版本
+            主要用于将新版编辑器的自定义节点函数转化为旧版编辑器可识别的格式.
+            旧版本编辑器移除后, 需要线下把所有v1格式转化为 v3 格式，并移除此代码(顺便可以去掉v1格式, 即删除content config inputs 字段).
+        """
         v3_funcs = node["content"]["config"].get("expressions", [])
         v3_func_ids = {i["id"] for i in v3_funcs}
         v1_funcs = node["content"]["config"].get("inputs", [])
@@ -225,12 +233,8 @@ class ZenRule:
                 node["content"]["config"]["meta"] = meta
 
                 node["content"]["config"]["version"] = "v3"
-                # # 新版编辑器完全上线后，需要线下把所有v1格式转化为 v3 格式.
-                ## 只需要将 v1 格式增量转化为 v3 格式, 目前前端实现了v1和v3的兼容, 所以后端不需要将 v3 格式转化为 v1.
-                self._custom_node_v1_to_v3(node)
-                # # 旧版本编辑器移除后, 需要线下把所有v1格式转化为 v3 格式，并移除此代码(顺便可以去掉v1格式, 即删除content config inputs 字段).
-                # self._custom_node_v3_to_v1(node)
-
+                ## 兼容旧版编辑器自定义节点执行逻辑, 将 v1 版本的自定义节点转化为 v3 版本.
+                self.custom_node_v1_to_v3(node)
                 ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
                 expr_asts = []
                 custom_expressions = node["content"]["config"].get("expressions")

@@ -66,6 +66,7 @@ async def test_zenrule_v3():
     for i in range(1):
         result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
         print("zen rule custom_v3 result:", result)
+        assert result.get("result", {}).get("result") == "foo value", "custom_v3 规则执行失败"
         print(f"------------------{i}------------------------")
 
 
@@ -82,6 +83,7 @@ async def test_zenrulev1_with_enginev3():
     zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
     result = await zr.async_evaluate(key, {"ip": "1.2.3.4", "user": "17707115956"})
     print("zen rule custom_v1 result:", result)
+    assert result.get("result", {}).get("a", {}).get("function") == "group_distinct_1m_demo", "custom_v1 规则执行失败"
 
 
 if __name__ == "__main__":
