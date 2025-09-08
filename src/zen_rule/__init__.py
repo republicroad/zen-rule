@@ -248,6 +248,50 @@ class ZenRule:
         logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 
+    def graph_addons_v3_to_v1(self, graph_content):
+        """
+            将规则图中的自定义节点由v3格式转化为v1格式. 用于兼容旧编辑器.
+            彻底移除旧版本编辑器后可移除此逻辑.
+            graph_content: json string/dict
+            return graph json string
+        """
+        if isinstance(graph_content, dict):
+            rule_graph = graph_content
+        elif isinstance(graph_content, str):
+            try:
+                rule_graph = json.loads(graph_content)
+            except Exception as e:
+                raise ValueError(f"Invalid JSON string: {e}")
+        else:
+            raise TypeError(f"Expected str or dict, got {type(graph_content).__name__}")
+        ## 在 loader 和 create_decision 中隐式调用.
+        ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
+        input_node_name = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"][0]
+        for node in rule_graph["nodes"]:
+            if node.get("type") == "customNode":
+                content = node.get("content", {})
+                config  = content.get("config", {})
+                meta = config.get("meta", {})
+                meta["inputNode_name"] = input_node_name
+                node["content"]["config"]["meta"] = meta
+
+                node["content"]["config"]["version"] = "v3"
+                ## 兼容旧版编辑器自定义节点执行逻辑, 将 v3 版本的自定义节点转化为 v1 版本. 这样可以在旧编辑器查看新版的自定义规则.
+                self.custom_node_v3_to_v1(node)
+                ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
+                expr_asts = []
+                custom_expressions = node["content"]["config"].get("expressions")
+                if custom_expressions:
+                    for func_item in custom_expressions:
+                        item = {**func_item}
+                        item["value"] = parse_oprator_expr_v3(func_item["value"])
+                        expr_asts.append(item)
+                    node["content"]["config"]["expr_asts"] = expr_asts
+
+        logger.debug(f"rule_graph:{pformat(rule_graph)}")
+        return json.dumps(rule_graph)
+
+
     @classmethod
     async def custom_handler_v1(cls, request):
         logger.debug("custom node use custom_handler_v1")
