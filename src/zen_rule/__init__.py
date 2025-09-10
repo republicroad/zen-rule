@@ -365,9 +365,10 @@ class ZenRule:
             coro_funcs.append(cls.engine_v3(item, node_input_args, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
-        results.update(node_input_args)
-        logger.debug(results)
-
+        if request.node.get("config",{}).get("passThrough"):
+            results.update(node_input_args)
+        else:
+            pass
         return {
             "output": results
         }
