@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.8"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -1028,7 +1028,7 @@ wheels = [
 
 [[package]]
 name = "zen-rule"
-version = "0.10.0"
+version = "0.15.2"
 source = { editable = "." }
 dependencies = [
     { name = "pyparsing", version = "3.1.4", source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }, marker = "python_full_version < '3.9'" },
