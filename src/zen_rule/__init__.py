@@ -231,7 +231,9 @@ class ZenRule:
                 meta = config.get("meta", {})
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
-
+                # 自定节点默认设置为 passThrough = True，默认是透传行为
+                if node["content"]["config"].get("passThrough") is None:
+                    node["content"]["config"]["passThrough"] = True
                 node["content"]["config"]["version"] = "v3"
                 ## 兼容旧版编辑器自定义节点执行逻辑, 将 v1 版本的自定义节点转化为 v3 版本.
                 self.custom_node_v1_to_v3(node)
