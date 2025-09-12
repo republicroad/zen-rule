@@ -1,0 +1,98 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "type": "inputNode",
+      "content": {
+        "schema": ""
+      },
+      "id": "input-node",
+      "name": "request",
+      "position": {
+        "x": 100,
+        "y": 100
+      }
+    },
+    {
+      "type": "expressionNode",
+      "content": {
+        "expressions": [
+          {
+            "id": "total-price-exp",
+            "key": "totalPrice",
+            "value": "price * quantity"
+          }
+        ],
+        "passThrough": true,
+        "inputField": "cart.items",
+        "outputPath": "cart.items",
+        "executionMode": "loop"
+      },
+      "id": "expression-node-1",
+      "name": "calculateItemTotal",
+      "position": {
+        "x": 380,
+        "y": 145
+      }
+    },
+    {
+      "type": "outputNode",
+      "content": {
+        "schema": ""
+      },
+      "id": "31a216ca-0bbc-4368-9373-ebe9575bcfa0",
+      "name": "response",
+      "position": {
+        "x": 635,
+        "y": 100
+      }
+    },
+    {
+      "type": "expressionNode",
+      "content": {
+        "expressions": [
+          {
+            "id": "978ccf2b-6c96-4bba-a3e2-c5f4922399b1",
+            "key": "items",
+            "value": "[\n    {\n        \"name\": \"Apple\",\n        \"price\": 0.5,\n        \"quantity\": 3\n    },\n    {\n        \"name\": \"Banana\",\n        \"price\": 0.3,\n        \"quantity\": 5\n    },\n    {\n        \"name\": \"Orange\",\n        \"price\": 0.7,\n        \"quantity\": 2\n    }\n]"
+          },
+          {
+            "id": "dfc3d7bc-bcbd-414d-856c-1aab20ea936d",
+            "key": "customerId",
+            "value": "\"CUST-001\""
+          }
+        ],
+        "passThrough": true,
+        "inputField": null,
+        "outputPath": "cart",
+        "executionMode": "single"
+      },
+      "id": "f487069a-c4d7-4a7f-bc9b-aeb6bde0911e",
+      "name": "init_data",
+      "position": {
+        "x": 125,
+        "y": 220
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "a7f38fb9-4939-4390-8a94-8d1358281831",
+      "sourceId": "expression-node-1",
+      "type": "edge",
+      "targetId": "31a216ca-0bbc-4368-9373-ebe9575bcfa0"
+    },
+    {
+      "id": "eb31f2e2-1b05-4886-b766-73a2e3870886",
+      "sourceId": "input-node",
+      "type": "edge",
+      "targetId": "f487069a-c4d7-4a7f-bc9b-aeb6bde0911e"
+    },
+    {
+      "id": "717ad7bb-1a62-467d-bdbb-ffa5b4984650",
+      "sourceId": "f487069a-c4d7-4a7f-bc9b-aeb6bde0911e",
+      "type": "edge",
+      "targetId": "expression-node-1"
+    }
+  ]
+}
