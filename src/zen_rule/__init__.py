@@ -67,6 +67,7 @@ class ZenRule:
 
         self.decision_cache = {}  # key -> zen decision instance
         self.custom_context = {}  # 自定义节点中的需要传入的上线文参数, 比如 trace_id 或者规则的相关元信息.
+        self.content_cache = {}
 
     def create_decision(self, content) -> ZenDecision:
         """
@@ -85,6 +86,7 @@ class ZenRule:
 
         zendecision = self.create_decision(content)
         self.decision_cache[key] = zendecision
+        self.content_cache[key] = content
         return zendecision
 
     def update_decision_with_cache_key(self, key, content) -> ZenDecision:
@@ -94,6 +96,7 @@ class ZenRule:
         if self.decision_cache.get(key):
             zendecision = self.create_decision(content)
             self.decision_cache[key] = zendecision
+            self.content_cache[key] = content
         else:
             raise RuntimeError(f"rule key:{key} is not existed, please use create_decision_with_cache_key")
         return zendecision
@@ -104,6 +107,7 @@ class ZenRule:
         """
         if self.decision_cache.get(key):
             del self.decision_cache[key]
+            del self.content_cache[key]
         else:
             raise RuntimeError(f"delete failed! rule key:{key} is not existed")
 
@@ -117,6 +121,7 @@ class ZenRule:
             zendecision = self.create_decision(decision_content)
             # zendecision = self.engine.get_decision(key)  # 会隐式调用 loader 函数.
             self.decision_cache[key] = zendecision
+            self.content_cache[key] = decision_content
             return zendecision
         else:
             return zendecision
@@ -417,8 +422,9 @@ class ZenRule:
     def get_decision_cache(self, key):
         return self.decision_cache.get(key, None)
 
-
-
+    def get_content_cache(self, key):
+        return self.content_cache.get(key, None)
+ 
 
 __all__ = [
     ZenRule,
