@@ -357,25 +357,34 @@ class ZenRule:
         # logger.debug(f"request.node:{request.node}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
-        # if not expr_asts and request.node["config"].get("inputs"):  # 没有抽象语法树的解析, 那么使用 custom_handler_v1 版本.
-        #     logger.debug("custom node use custom_handler_v1")
-        #     return await cls.custom_handler_v1(request)
+        inputField = request.node.get("config",{}).get("inputField")
+        outputPath = request.node.get("config",{}).get("outputPath")
+        passThrough = request.node.get("config",{}).get("passThrough")
         logger.debug("custom node use custom_handler_v3")
         coro_funcs = []
         results = {}
         context = {
             "node_id": request.node["id"],  ## 隔离 graph 中的节点
             "meta": request.node["config"].get("meta", {}),
+            "passThrough": passThrough,
+            "inputField": inputField,
+            "outputPath": outputPath,
         }
+
         node_input_args = {k: v for k, v in request.input.items() if k != "$nodes"}
         for item in expr_asts:
             coro_funcs.append(cls.engine_v3(item, node_input_args, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
-        if request.node.get("config",{}).get("passThrough"):
+        if passThrough:
             results.update(node_input_args)
         else:
             pass
+        
+        if outputPath:
+            # get nested path like a.b.c for dict a["b"]["c"]
+            results = zen.evaluate_expression(f"{outputPath}={'_'}", {"_": results})  # 先创建路径
+        logger.warning(f"custom v3 result:{results}")
         return {
             "output": results
         }
@@ -399,9 +408,10 @@ class ZenRule:
             operator, *op_arg_expressions  = expr_ast
             logger.debug(f"node_input:{node_input}  context:{context}")
             logger.debug(f"operator:{operator}  args:{op_arg_expressions}")
+            inputfield = context.get("inputField")
             func_name = operator
             f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
-            args = [zen_exprs_eval(i, node_input) for i in op_arg_expressions]
+            args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
             oprator_kwargs = op_args_combination(args, f)
             logger.debug(f"ast_exec {func_name} args: {args}")
             logger.debug(f"ast_exec {func_name} kwargs: {oprator_kwargs}")
