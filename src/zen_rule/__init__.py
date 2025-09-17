@@ -306,6 +306,8 @@ class ZenRule:
                 meta = config.get("meta", {})
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
+                if node["content"]["config"].get("passThrough") is None:
+                    node["content"]["config"]["passThrough"] = True
 
                 node["content"]["config"]["version"] = "v3"
                 ## 兼容旧版编辑器自定义节点执行逻辑, 将 v3 版本的自定义节点转化为 v1 版本. 这样可以在旧编辑器查看新版的自定义规则.
@@ -350,6 +352,8 @@ class ZenRule:
                 meta = config.get("meta", {})
                 meta["inputNode_name"] = input_node_name
                 node["content"]["config"]["meta"] = meta
+                if node["content"]["config"].get("passThrough") is None:
+                    node["content"]["config"]["passThrough"] = True
 
                 node["content"]["config"]["version"] = "v3"
                 ## 兼容旧版编辑器自定义节点执行逻辑, 将 v3 版本的自定义节点转化为 v1 版本. 这样可以在旧编辑器查看新版的自定义规则.
