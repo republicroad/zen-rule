@@ -220,10 +220,23 @@ class ZenRule:
             node["content"]["config"]["inputs"] = []
         node["content"]["config"]["expressions"] = []   ## 先清空 v3 的表达式, 然后再添加 v1 的表达式.
         for func_item in node["content"]["config"]["inputs"]:  # 遍历 v1 的输入函数 v3_func_ids
+            if func_item.get("funcmeta") is None:
+                continue
             func_name = func_item["funcmeta"]["name"]
             v1_arg_exprs = func_item["arg_exprs"]
-            args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
-            args_ = ";;".join([j for _, j in args])
+            args = []
+            for i in func_item["funcmeta"]["arguments"]:
+                if not isinstance(v1_arg_exprs, dict):
+                    continue
+                # 如果 v1_arg_exprs 没有 i["arg_name"] 这个key, 会报错.
+                # 需要考虑下这种情况么?
+                # 这种情况则从funcmeta 中的arguments 中取默认值
+                if v1_arg_exprs.get(i["arg_name"]) is None:
+                    args.append([i["arg_name"], i["defaults"]])
+                else:
+                    args.append([i["arg_name"], v1_arg_exprs[i["arg_name"]]])
+            # args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
+            args_ = ";;".join([str(j) for _, j in args])
             func_call = f"{func_name};;{args_}"
             d = {
                 "id": func_item["id"],
