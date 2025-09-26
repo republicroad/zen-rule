@@ -1,6 +1,6 @@
 [project]
 name = "zen-rule"
-version = "0.16.4"
+version = "0.16.5"
 description = "zen-engine enrichment for custom node spec and cache ZenDecision objects for performance"
 readme = "README.md"
 requires-python = ">=3.8"
