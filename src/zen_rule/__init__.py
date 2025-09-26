@@ -164,9 +164,9 @@ class ZenRule:
                 # 自定节点默认设置为 passThrough = True，默认是透传行为
                 if node["content"]["config"].get("passThrough") is None:
                     node["content"]["config"]["passThrough"] = True
-                node["content"]["config"]["version"] = "v3"
-                ## 兼容旧版编辑器自定义节点执行逻辑, 将 v1 版本的自定义节点转化为 v3 版本.
-                self.mix_custom_node_v1_and_v3(node)
+                # node["content"]["config"]["version"] = "v3"
+                # ## 兼容旧版编辑器自定义节点执行逻辑, 将 v1 版本的自定义节点转化为 v3 版本.
+                # self.mix_custom_node_v1_and_v3(node)
                 ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
                 expr_asts = []
                 custom_expressions = node["content"]["config"].get("expressions")
@@ -180,246 +180,34 @@ class ZenRule:
         logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 
-    def mix_custom_node_v1_and_v3(self, node):
-        """
-            运行时: 将 v1 版本的自定义节点转化为 v3 版本, v1 中新的节点添加到 v3 函数中, v1 和v3相同的节点则覆盖 v3 的节点.
-        """
-        v3_funcs = node["content"]["config"].get("expressions", [])
-        v3_func_ids = {i["id"] for i in v3_funcs}
-        v1_funcs = node["content"]["config"].get("inputs", [])
-        v1_func_ids = {i["id"] for i in v1_funcs}
-
-        if not v3_funcs:
-            node["content"]["config"]["expressions"] = []
-        if not v1_funcs:
-            node["content"]["config"]["inputs"] = []
-
-        for func_item in node["content"]["config"]["inputs"]:  # 遍历 v1 的输入函数 v3_func_ids
-            func_name = func_item["funcmeta"]["name"]
-            v1_arg_exprs = func_item["arg_exprs"]
-            args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
-            args_ = ";;".join([j for _, j in args])
-            func_call = f"{func_name};;{args_}"
-            d = {
-                "id": func_item["id"],
-                "key": func_item["key"],
-                "value": func_call
-            }
-            ## 如果当前 v1_func 的 id 不在 v3_func_ids 中, 那么就添加到 v3 的func表达式中
-            if func_item["id"] not in v3_func_ids:
-                node["content"]["config"]["expressions"].append(d)
-            else:
-                # 如果在 v3_func_ids 中, 那么更新此 v3_func
-                for item in node["content"]["config"]["expressions"]:
-                    if item["id"] == func_item["id"]:
-                        item.update(d)
-
-    def custom_node_v1_to_v3(self, node):
-        """
-            保存规则: 将 v1 版本的自定义节点转化为 v3 版本
-        """
-        if not node["content"]["config"].get("inputs", []):
-            node["content"]["config"]["inputs"] = []
-        node["content"]["config"]["expressions"] = []   ## 先清空 v3 的表达式, 然后再添加 v1 的表达式.
-        for func_item in node["content"]["config"]["inputs"]:  # 遍历 v1 的输入函数 v3_func_ids
-            if func_item.get("funcmeta") is None:
-                continue
-            func_name = func_item["funcmeta"]["name"]
-            v1_arg_exprs = func_item["arg_exprs"]
-            args = []
-            for i in func_item["funcmeta"]["arguments"]:
-                if not isinstance(v1_arg_exprs, dict):
-                    continue
-                # 如果 v1_arg_exprs 没有 i["arg_name"] 这个key, 会报错.
-                # 需要考虑下这种情况么?
-                # 这种情况则从funcmeta 中的arguments 中取默认值
-                if v1_arg_exprs.get(i["arg_name"]) is None:
-                    args.append([i["arg_name"], i["defaults"]])
-                else:
-                    args.append([i["arg_name"], v1_arg_exprs[i["arg_name"]]])
-            # args = [[i["arg_name"], v1_arg_exprs[i["arg_name"]]] for i in func_item["funcmeta"]["arguments"]]
-            args_ = ";;".join([str(j) for _, j in args])
-            func_call = f"{func_name};;{args_}"
-            d = {
-                "id": func_item["id"],
-                "key": func_item["key"],
-                "value": func_call
-            }
-            ## 将 v1 的func覆写到 v3 的函数中.
-            node["content"]["config"]["expressions"].append(d)
-            # ## 如果当前 v1_func 的 id 不在 v3_func_ids 中, 那么就添加到 v3 的func表达式中
-            # if func_item["id"] not in v3_func_ids:
-            #     node["content"]["config"]["expressions"].append(d)
-            # else:
-            #     # 如果在 v3_func_ids 中, 那么更新此 v3_func
-            #     for item in node["content"]["config"]["expressions"]:
-            #         if item["id"] == func_item["id"]:
-            #             item.update(d)
-
-    def custom_node_v3_to_v1(self, node):
-        """
-            保存规则: 将 v3 版本的自定义节点转化为 v1 版本
-            主要用于将新版编辑器的自定义节点函数转化为旧版编辑器可识别的格式.
-            旧版本编辑器移除后, 需要线下把所有v1格式转化为 v3 格式，并移除此代码(顺便可以去掉v1格式, 即删除content config inputs 字段).
-        """
-        if not node["content"]["config"].get("expressions", []):
-            node["content"]["config"]["expressions"] = []
-        node["content"]["config"]["inputs"] = []  ## 先清空 v1 的输入函数, 然后再添加 v3 的表达式.
-        for func_item in node["content"]["config"]["expressions"]:
-            expr_ast = parse_oprator_expr_v3(func_item["value"])
-            operator, *op_arg_expressions  = expr_ast
-            func_name = operator
-            f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
-            # args = [zen_exprs_eval(i, node_input) for i in op_arg_expressions]
-            oprator_kwargs = op_args_combination(op_arg_expressions, f)
-            d = {
-                "id": func_item["id"],
-                "key": func_item["key"],
-                "type": "function",
-                "arg_exprs": oprator_kwargs,
-                "funcmeta": {
-                    "name": f["name"],
-                    "arglength": f["arglength"],
-                    "arguments": f["arguments"],
-                    "return_values": f["return_values"],
-                    "comments": f["comments"]
-                }
-            }
-            ## 将 v3 的func覆写到 v1 的函数中.
-            node["content"]["config"]["inputs"].append(d)
-            # if func_item["id"] not in v1_func_ids:
-            #     node["content"]["config"]["inputs"].append(d)
-            # else:
-            #    for item in node["content"]["config"]["inputs"]:
-            #         if item["id"] == func_item["id"]:
-            #             item.update(d)
-
-
-    def graph_addons_v1_to_v3(self, graph_content):
-        """
-            将规则图中的自定义节点由v1格式转化为v3格式. 用于兼容旧编辑器.
-            彻底移除旧版本编辑器后可移除此逻辑.
-            graph_content: json string/dict
-            return graph json string
-        """
-        if isinstance(graph_content, dict):
-            rule_graph = graph_content
-        elif isinstance(graph_content, str):
-            try:
-                rule_graph = json.loads(graph_content)
-            except Exception as e:
-                raise ValueError(f"Invalid JSON string: {e}")
-        else:
-            raise TypeError(f"Expected str or dict, got {type(graph_content).__name__}")
-        ## 在 loader 和 create_decision 中隐式调用.
-        ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
-        _input_node = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"]
-        input_node = [i for i in _input_node if i]  # 过滤掉 None 或 空字符串
-        input_node_name = input_node[0] if input_node else ""
-
-        for node in rule_graph["nodes"]:
-            if node.get("type") == "customNode":
-                content = node.get("content", {})
-                config  = content.get("config", {})
-                meta = config.get("meta", {})
-                meta["inputNode_name"] = input_node_name
-                node["content"]["config"]["meta"] = meta
-                if node["content"]["config"].get("passThrough") is None:
-                    node["content"]["config"]["passThrough"] = True
-
-                node["content"]["config"]["version"] = "v3"
-                ## 兼容旧版编辑器自定义节点执行逻辑, 将 v3 版本的自定义节点转化为 v1 版本. 这样可以在旧编辑器查看新版的自定义规则.
-                self.custom_node_v1_to_v3(node)
-                ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
-                expr_asts = []
-                custom_expressions = node["content"]["config"].get("expressions")
-                if custom_expressions:
-                    for func_item in custom_expressions:
-                        item = {**func_item}
-                        item["value"] = parse_oprator_expr_v3(func_item["value"])
-                        expr_asts.append(item)
-                    node["content"]["config"]["expr_asts"] = expr_asts
-
-        logger.debug(f"rule_graph:{pformat(rule_graph)}")
-        return json.dumps(rule_graph)
-
-
-    def graph_addons_v3_to_v1(self, graph_content):
-        """
-            将规则图中的自定义节点由v3格式转化为v1格式. 用于兼容旧编辑器.
-            彻底移除旧版本编辑器后可移除此逻辑.
-            graph_content: json string/dict
-            return graph json string
-        """
-        if isinstance(graph_content, dict):
-            rule_graph = graph_content
-        elif isinstance(graph_content, str):
-            try:
-                rule_graph = json.loads(graph_content)
-            except Exception as e:
-                raise ValueError(f"Invalid JSON string: {e}")
-        else:
-            raise TypeError(f"Expected str or dict, got {type(graph_content).__name__}")
-        ## 在 loader 和 create_decision 中隐式调用.
-        ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
-        _input_node = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"]
-        input_node = [i for i in _input_node if i]  # 过滤掉 None 或 空字符串
-        input_node_name = input_node[0] if input_node else ""
-        for node in rule_graph["nodes"]:
-            if node.get("type") == "customNode":
-                content = node.get("content", {})
-                config  = content.get("config", {})
-                meta = config.get("meta", {})
-                meta["inputNode_name"] = input_node_name
-                node["content"]["config"]["meta"] = meta
-                if node["content"]["config"].get("passThrough") is None:
-                    node["content"]["config"]["passThrough"] = True
-
-                node["content"]["config"]["version"] = "v3"
-                ## 兼容旧版编辑器自定义节点执行逻辑, 将 v3 版本的自定义节点转化为 v1 版本. 这样可以在旧编辑器查看新版的自定义规则.
-                self.custom_node_v3_to_v1(node)
-                ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
-                expr_asts = []
-                custom_expressions = node["content"]["config"].get("expressions")
-                if custom_expressions:
-                    for func_item in custom_expressions:
-                        item = {**func_item}
-                        item["value"] = parse_oprator_expr_v3(func_item["value"])
-                        expr_asts.append(item)
-                    node["content"]["config"]["expr_asts"] = expr_asts
-
-        logger.debug(f"rule_graph:{pformat(rule_graph)}")
-        return json.dumps(rule_graph)
-
-
-    @classmethod
-    async def custom_handler_v1(cls, request):
-        logger.debug("custom node use custom_handler_v1")
-        funcs = request.node["config"].get("inputs", [])
-        trans_func = lambda x: zen.evaluate_expression(x, request.input)
-        res = {}
-        bar = []
-        for item in funcs:
-            funcmeta = item["funcmeta"]
-            funcname = funcmeta["name"]
-            func_variables = {k: v for k, v in item["arg_exprs"].items()}
-            vars2value = {k: trans_func(v) for k, v in func_variables.items()}
-            env = {
-                "node_id": request.node["id"],  ## 隔离 graph 中的节点
-                "func_id": item["id"],  ## 隔离每一个计算逻辑.
-                "meta": request.node["config"].get("meta", {}),
-                **vars2value,
-            }
-            # env.update(vars2value)
-            bar.append((item["key"], funcname, env))
-        results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2]) for _ in bar])
-        for key, result in zip([_[0] for _ in bar], results):
-            res[key] = result
-        res.update({k: v for k, v in request.input.items() if k != "$nodes"})
-        logger.warning(f"custom v1 result:{res}")
-        return {
-            "output": res
-        }
+    # @classmethod
+    # async def custom_handler_v1(cls, request):
+    #     logger.debug("custom node use custom_handler_v1")
+    #     funcs = request.node["config"].get("inputs", [])
+    #     trans_func = lambda x: zen.evaluate_expression(x, request.input)
+    #     res = {}
+    #     bar = []
+    #     for item in funcs:
+    #         funcmeta = item["funcmeta"]
+    #         funcname = funcmeta["name"]
+    #         func_variables = {k: v for k, v in item["arg_exprs"].items()}
+    #         vars2value = {k: trans_func(v) for k, v in func_variables.items()}
+    #         env = {
+    #             "node_id": request.node["id"],  ## 隔离 graph 中的节点
+    #             "func_id": item["id"],  ## 隔离每一个计算逻辑.
+    #             "meta": request.node["config"].get("meta", {}),
+    #             **vars2value,
+    #         }
+    #         # env.update(vars2value)
+    #         bar.append((item["key"], funcname, env))
+    #     results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2]) for _ in bar])
+    #     for key, result in zip([_[0] for _ in bar], results):
+    #         res[key] = result
+    #     res.update({k: v for k, v in request.input.items() if k != "$nodes"})
+    #     logger.warning(f"custom v1 result:{res}")
+    #     return {
+    #         "output": res
+    #     }
 
 
     @classmethod
@@ -504,17 +292,23 @@ class ZenRule:
             inputfield = context.get("inputField")
             func_name = operator
             f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
-            args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
-            oprator_kwargs = op_args_combination(args, f)
-            logger.debug(f"ast_exec {func_name} args: {args}")
-            logger.debug(f"ast_exec {func_name} kwargs: {oprator_kwargs}")
-            kwargs = {
-                **oprator_kwargs,
-                **context,
-                "func_id": expr_id,
-                "expr_id": expr_id,
-            }
-            result = await udf_manager(func_name, *args, **kwargs)
+            if f:
+                args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
+                oprator_kwargs = op_args_combination(args, f)
+                logger.debug(f"ast_exec {func_name} args: {args}")
+                logger.debug(f"ast_exec {func_name} kwargs: {oprator_kwargs}")
+                kwargs = {
+                    **oprator_kwargs,
+                    **context,
+                    "func_id": expr_id,
+                    "expr_id": expr_id,
+                }
+                result = await udf_manager(func_name, *args, **kwargs)
+            else:
+                if func_name:
+                    result = {"error": f"udf {func_name} not found"}
+                else:
+                    result = {"error": "empty udf name not allowed"}
             logger.debug(f"{func_name} calling ->: {result}")
             return result
         except Exception as e:

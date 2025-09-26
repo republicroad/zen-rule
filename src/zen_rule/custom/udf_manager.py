@@ -117,7 +117,7 @@ class UDFManager:
         ]
 
     def udf_info(self, name) -> List[Dict[str, Any]]:
-        return self.functions[name] 
+        return self.functions.get(name)
 
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
         """
