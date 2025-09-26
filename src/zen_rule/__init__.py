@@ -311,7 +311,10 @@ class ZenRule:
             raise TypeError(f"Expected str or dict, got {type(graph_content).__name__}")
         ## 在 loader 和 create_decision 中隐式调用.
         ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
-        input_node_name = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"][0]
+        _input_node = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"]
+        input_node = [i for i in _input_node if i]  # 过滤掉 None 或 空字符串
+        input_node_name = input_node[0] if input_node else ""
+
         for node in rule_graph["nodes"]:
             if node.get("type") == "customNode":
                 content = node.get("content", {})
