@@ -6,7 +6,7 @@ from pprint import pprint
 from pathlib import Path
 from zen_rule import ZenRule, udf, FuncArg, FuncRet
 
-from utils import httpsession, get_state
+from utils import httpsession
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

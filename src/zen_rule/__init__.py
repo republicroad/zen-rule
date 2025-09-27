@@ -164,9 +164,7 @@ class ZenRule:
                 # 自定节点默认设置为 passThrough = True，默认是透传行为
                 if node["content"]["config"].get("passThrough") is None:
                     node["content"]["config"]["passThrough"] = True
-                # node["content"]["config"]["version"] = "v3"
-                # ## 兼容旧版编辑器自定义节点执行逻辑, 将 v1 版本的自定义节点转化为 v3 版本.
-                # self.mix_custom_node_v1_and_v3(node)
+
                 ### 将自定义节点中的表达式进行解析, 解析出其中表达式函数中的自定义函数(udf)的执行逻辑, 执行顺序.
                 expr_asts = []
                 custom_expressions = node["content"]["config"].get("expressions")
@@ -180,43 +178,10 @@ class ZenRule:
         logger.debug(f"rule_graph:{pformat(rule_graph)}")
         return json.dumps(rule_graph)
 
-    # @classmethod
-    # async def custom_handler_v1(cls, request):
-    #     logger.debug("custom node use custom_handler_v1")
-    #     funcs = request.node["config"].get("inputs", [])
-    #     trans_func = lambda x: zen.evaluate_expression(x, request.input)
-    #     res = {}
-    #     bar = []
-    #     for item in funcs:
-    #         funcmeta = item["funcmeta"]
-    #         funcname = funcmeta["name"]
-    #         func_variables = {k: v for k, v in item["arg_exprs"].items()}
-    #         vars2value = {k: trans_func(v) for k, v in func_variables.items()}
-    #         env = {
-    #             "node_id": request.node["id"],  ## 隔离 graph 中的节点
-    #             "func_id": item["id"],  ## 隔离每一个计算逻辑.
-    #             "meta": request.node["config"].get("meta", {}),
-    #             **vars2value,
-    #         }
-    #         # env.update(vars2value)
-    #         bar.append((item["key"], funcname, env))
-    #     results = await asyncio.gather(*[udf_manager.call_udf(_[1], *_[2], **_[2]) for _ in bar])
-    #     for key, result in zip([_[0] for _ in bar], results):
-    #         res[key] = result
-    #     res.update({k: v for k, v in request.input.items() if k != "$nodes"})
-    #     logger.warning(f"custom v1 result:{res}")
-    #     return {
-    #         "output": res
-    #     }
-
-
     @classmethod
     async def custom_handler_v3(cls, request):
         """
-            v2 支持字面量的自定义函数的表达式, 和普通函数类似, 也支持函数表达式的嵌套调用.
-            参考 src/custom/custom_v2.json 中的示例.
-            兼容 custom_handler_v1 元数据定义和执行逻辑.
-
+            v3 版本的自定义节点处理函数:
             为了简化决策引擎的使用, 决策引擎决定按照不同自定义节点算子的作用对自定义节点进行分类.
             v3 版本不支持 自定义算子 和 zen 表达式函数混合调用, 也不支持 自定义算子的嵌套调用.
             为了方便对自定义算子的参数中的复杂 zen 表达式进行解析，拟支持如下两种格式:
@@ -232,8 +197,6 @@ class ZenRule:
             1. zen 表达式变量 myvar
             2. zen 表达式函数 bar(zoo('fccdjny',6, 3.14),'a')
             3. zen 表达式 a+string(xxx)
-            注意, 需要对 v1 版本和 v2 版本进行兼容.
-            因为 v2 版本并未正式上线, 主要是对 v1 版本进行兼容.
         """
         # logger.debug(f"request.node:{request.node}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.

@@ -151,7 +151,7 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
     "content": {
     "kind": "sum",
     "config": {
-        "version": "v2",
+        "version": "v3",
         "meta": {
         "user": "wanghao@geetest.com",
         "proj": "proj_id"
