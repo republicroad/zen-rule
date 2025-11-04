@@ -3,7 +3,7 @@ from typing import Any, Optional, TypedDict, Literal, Awaitable, Union
 import logging
 import json
 from pathlib import Path
-from pprint import pprint, pformat
+from pprint import pformat
 import asyncio
 import inspect
 
@@ -11,30 +11,15 @@ import zen
 from zen import ZenDecision
 from .custom.udf_manager import udf_manager, udf, FuncArg, FuncRet
 from .custom import op_args_combination, parse_oprator_expr_v3
-# from zen import EvaluateResponse  # cannot import
+
 zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
 logger = logging.getLogger(__name__)
 
-class EvaluateResponse(TypedDict):
+class EvaluateResponse(TypedDict):  # from zen import EvaluateResponse  # cannot import
     performance: str
     result: dict
     trace: dict
-
-
-async def custom_async_handler(request):
-    """
-        示例自定义节点处理函数.
-        todo: 是否需要包装一层异常捕获的逻辑.
-    """
-    # p1 = request.get_field("prop1")  # 没有prop1属性会报错.
-    # await asyncio.sleep(0.1)
-    logger.debug(f"request:{request}")
-    logger.debug(f"request attrs:{dir(request)}")
-    result = zen.evaluate_expression('rand(100)', request.input)
-    logger.debug(f"return value:{result}")
-    return {
-        "output": {"sum": 112}
-    }
+    
 
 def loader(key):
     """
@@ -276,8 +261,8 @@ class ZenRule:
             return result
         except Exception as e:
             logger.error(e, exc_info=True)
-            # todo: 异常情况下自定义算子返回什么, 空字符串还是null.
-            return None
+            # 把运行的异常信息用error字段返回
+            return {"error": str(e)}
 
     def get_decision_cache(self, key):
         return self.decision_cache.get(key, None)
