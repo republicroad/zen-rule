@@ -149,17 +149,22 @@ class ZenRule:
                 raise ValueError(f"Invalid JSON string: {e}")
         else:
             raise TypeError(f"Expected str or dict, got {type(graph_content).__name__}")
+        
         ## 在 loader 和 create_decision 中隐式调用.
         ### 1.讲 inputNode 的 name 写到所有的customNode(自定义节点)中, 这样方便在自定义节点取得入参. 有些参数希望全局可以访问.
         _input_node = [i.get("name") for i in rule_graph["nodes"] if i.get("type") == "inputNode"]
         input_node = [i for i in _input_node if i]  # 过滤掉 None 或 空字符串
         input_node_name = input_node[0] if input_node else ""
+        rule_id = rule_graph.get("id", "")
+        rule_meta = rule_graph.get("meta", {})
+        rule_meta["namespace"] = rule_id
+        rule_meta["inputNode_name"] = input_node_name
         for node in rule_graph["nodes"]:
             if node.get("type") == "customNode":
                 content = node.get("content", {})
                 config  = content.get("config", {})
                 meta = config.get("meta", {})
-                meta["inputNode_name"] = input_node_name
+                meta.update(rule_meta)
                 node["content"]["config"]["meta"] = meta
                 # 自定节点默认设置为 passThrough = True，默认是透传行为
                 if node["content"]["config"].get("passThrough") is None:
@@ -214,6 +219,8 @@ class ZenRule:
             "inputField": inputField,
             "outputPath": outputPath,
         }
+        from pprint import pprint
+        pprint(context)
 
         node_input_args = {k: v for k, v in request.input.items() if k != "$nodes"}
         for item in expr_asts:

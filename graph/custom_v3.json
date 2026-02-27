@@ -1,4 +1,9 @@
 {
+  "meta": {
+    "version": "v3",
+    "user": "wanghao@geetest.com"
+  },
+  "id": "710c5ba6752bdb626cda40a65079d382",
   "contentType": "application/vnd.gorules.decision",
   "nodes": [
     {
@@ -24,7 +29,7 @@
           "version": "v3",
           "meta": {
             "user": "wanghao@geetest.com",
-            "proj": "proj_id"
+            "namespace": "710c5ba6752bdb626cda40a65079d382"
           },
           "prop1": "{{ a + 10 }}",
           "passThrough": true,
