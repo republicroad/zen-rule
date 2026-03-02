@@ -1,7 +1,9 @@
 {
-  "meta": {
-    "version": "v3",
-    "user": "wanghao@geetest.com"
+  "metadata": {
+    "version": "1.0.0",
+    "author": "wanghao@geetest.com",
+    "description": "login risk check",
+    "tags": ["login", "risk control"]
   },
   "id": "710c5ba6752bdb626cda40a65079d382",
   "contentType": "application/vnd.gorules.decision",
@@ -26,8 +28,8 @@
       "content": {
         "kind": "sum",
         "config": {
-          "version": "v3",
-          "meta": {
+          "__meta__": {
+            "customHandlerVersion": "v3",
             "user": "wanghao@geetest.com",
             "namespace": "710c5ba6752bdb626cda40a65079d382"
           },

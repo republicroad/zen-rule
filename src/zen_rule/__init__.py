@@ -51,6 +51,7 @@ def loader(key):
 
 
 class ZenRule:
+    custom_handler_meta = "__meta__"
     def __init__(self, options: Optional[dict] = None) -> None: 
         # {"customHandler": self.custom_handler_v3, "loader": self.loader}
         if options:
@@ -156,16 +157,16 @@ class ZenRule:
         input_node = [i for i in _input_node if i]  # 过滤掉 None 或 空字符串
         input_node_name = input_node[0] if input_node else ""
         rule_id = rule_graph.get("id", "")
-        rule_meta = rule_graph.get("meta", {})
+        rule_meta = rule_graph.get("metadata", {})
         rule_meta["namespace"] = rule_id
         rule_meta["inputNode_name"] = input_node_name
         for node in rule_graph["nodes"]:
             if node.get("type") == "customNode":
                 content = node.get("content", {})
                 config  = content.get("config", {})
-                meta = config.get("meta", {})
-                meta.update(rule_meta)
-                node["content"]["config"]["meta"] = meta
+                ch_meta = config.get(self.custom_handler_meta, {}) or config.get("meta", {})
+                ch_meta.update(rule_meta)
+                node["content"]["config"][self.custom_handler_meta] = ch_meta
                 # 自定节点默认设置为 passThrough = True，默认是透传行为
                 if node["content"]["config"].get("passThrough") is None:
                     node["content"]["config"]["passThrough"] = True
@@ -209,18 +210,17 @@ class ZenRule:
         inputField = request.node.get("config",{}).get("inputField")
         outputPath = request.node.get("config",{}).get("outputPath")
         passThrough = request.node.get("config",{}).get("passThrough")
+        __meta__ = request.node["config"].get(cls.custom_handler_meta, {})
         logger.debug("custom node use custom_handler_v3")
         coro_funcs = []
         results = {}
         context = {
             "node_id": request.node["id"],  ## 隔离 graph 中的节点
-            "meta": request.node["config"].get("meta", {}),
+            cls.custom_handler_meta: __meta__,
             "passThrough": passThrough,
             "inputField": inputField,
             "outputPath": outputPath,
         }
-        from pprint import pprint
-        pprint(context)
 
         node_input_args = {k: v for k, v in request.input.items() if k != "$nodes"}
         for item in expr_asts:
