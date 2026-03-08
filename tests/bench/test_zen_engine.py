@@ -7,6 +7,7 @@ from pprint import pprint
 import pytest
 
 import zen
+from zen import ZenEngine, ZenDecision, ZenDecisionContent
 
 con = """
 {
@@ -79,13 +80,14 @@ con = """
 def init_zen():
   engine = zen.ZenEngine()
   decision = engine.create_decision(con)
-  return engine, decision
+  zen_decison_content = ZenDecisionContent(con)
+  return engine, decision, zen_decison_content
 
 
-engine, decision = init_zen()
+engine, decision, zen_decison_content = init_zen()
 
 
-def zenengine_demo0(con):
+def zenengine_demo0(con, engine, decision, zen_decison_content):
   engine = zen.ZenEngine()
   decision = engine.create_decision(con)
   input = {
@@ -94,7 +96,7 @@ def zenengine_demo0(con):
   result = decision.evaluate(input, {"trace": True})
 
 
-def zenengine_demo1(con, engine):
+def zenengine_demo1(con, engine, decision, zen_decison_content):
   decision = engine.create_decision(con)
   input = {
     "num": 10,
@@ -102,36 +104,52 @@ def zenengine_demo1(con, engine):
   result = decision.evaluate(input, {"trace": True})
 
 
-def zenengine_demo2(con, decision):
+def zenengine_demo1_1(con, engine, decision, zen_decison_content):
+  decision = engine.create_decision(zen_decison_content)
   input = {
     "num": 10,
   }
   result = decision.evaluate(input, {"trace": True})
 
 
-def zenengine_demo3(con, decision):
+def zenengine_demo1_2(con, engine, decision, zen_decison_content):
+  decision = engine.create_decision(zen_decison_content)
   input = {
     "num": 10,
   }
   result = decision.evaluate(input)
 
 
-def zenengine_demo4(con, decision):
+def zenengine_demo2(con, engine, decision, zen_decison_content):
+  input = {
+    "num": 10,
+  }
+  result = decision.evaluate(input, {"trace": True})
+
+
+def zenengine_demo3(con, engine, decision, zen_decison_content):
+  input = {
+    "num": 10,
+  }
+  result = decision.evaluate(input, {"trace": False})
+
+
+def zenengine_demo4(con, engine, decision, zen_decison_content):
   input = {
     "num": 10,
     "extra_num": random.randint(0, 100)
   }
-  result = decision.evaluate(input)
+  result = decision.evaluate(input, {"trace": False})
 
 
-def zenengine_demo5(con, decision):
+def zenengine_demo5(con, engine, decision, zen_decison_content):
   input = {
     "num": 10,
   }
   key = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
   value = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
   input[key] = value
-  result = decision.evaluate(input)
+  result = decision.evaluate(input, {"trace": False})
 
 
 @pytest.mark.benchmark(
@@ -141,7 +159,7 @@ def zenengine_demo5(con, decision):
 )
 def test_0(benchmark):
   # benchmark something
-  result = benchmark(zenengine_demo0, con)
+  result = benchmark(zenengine_demo0, con, engine, decision, zen_decison_content)
 
   # Extra code, to verify that the run completed correctly.
   # Sometimes you may want to check the result, fast functions
@@ -156,12 +174,42 @@ def test_0(benchmark):
 )
 def test_1(benchmark):
   # benchmark something
-  result = benchmark(zenengine_demo1, con, engine)
+  result = benchmark(zenengine_demo1, con, engine, decision, zen_decison_content)
 
   # Extra code, to verify that the run completed correctly.
   # Sometimes you may want to check the result, fast functions
   # are no good if they return incorrect results :-)
   assert True
+
+
+# @pytest.mark.benchmark(
+#     group="zen-engine-decision",
+#     disable_gc=True,
+#     # warmup=False
+# )
+# def test_1_1(benchmark):
+#   # benchmark something
+#   result = benchmark(zenengine_demo1_1, con, engine, decision, zen_decison_content)
+
+#   # Extra code, to verify that the run completed correctly.
+#   # Sometimes you may want to check the result, fast functions
+#   # are no good if they return incorrect results :-)
+#   assert True
+
+
+# @pytest.mark.benchmark(
+#     group="zen-engine-decision",
+#     disable_gc=True,
+#     # warmup=False
+# )
+# def test_1_2(benchmark):
+#   # benchmark something
+#   result = benchmark(zenengine_demo1_2, con, engine, decision, zen_decison_content)
+
+#   # Extra code, to verify that the run completed correctly.
+#   # Sometimes you may want to check the result, fast functions
+#   # are no good if they return incorrect results :-)
+#   assert True
 
 
 @pytest.mark.benchmark(
@@ -171,7 +219,7 @@ def test_1(benchmark):
 )
 def test_2(benchmark):
   # benchmark something
-  result = benchmark(zenengine_demo2, con, decision)
+  result = benchmark(zenengine_demo2, con, engine, decision, zen_decison_content)
 
   # Extra code, to verify that the run completed correctly.
   # Sometimes you may want to check the result, fast functions
@@ -186,7 +234,7 @@ def test_2(benchmark):
 )
 def test_3(benchmark):
   # benchmark something
-  result = benchmark(zenengine_demo3, con, decision)
+  result = benchmark(zenengine_demo3, con, engine, decision, zen_decison_content)
 
   # Extra code, to verify that the run completed correctly.
   # Sometimes you may want to check the result, fast functions
@@ -201,7 +249,7 @@ def test_3(benchmark):
 )
 def test_4(benchmark):
   # benchmark something
-  result = benchmark(zenengine_demo4, con, decision)
+  result = benchmark(zenengine_demo4, con, engine, decision, zen_decison_content)
 
   # Extra code, to verify that the run completed correctly.
   # Sometimes you may want to check the result, fast functions
@@ -216,7 +264,7 @@ def test_4(benchmark):
 )
 def test_5(benchmark):
   # benchmark something
-  result = benchmark(zenengine_demo4, con, decision)
+  result = benchmark(zenengine_demo5, con, engine, decision, zen_decison_content)
 
   # Extra code, to verify that the run completed correctly.
   # Sometimes you may want to check the result, fast functions
