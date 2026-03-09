@@ -1,0 +1,205 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "type": "inputNode",
+      "content": {
+        "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"first_name\": {\n      \"type\": \"string\"\n    },\n    \"last_name\": {\n      \"type\": \"string\"\n    },\n    \"birthday\": {\n      \"type\": \"string\",\n      \"format\": \"date\"\n    },\n    \"address\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"street_address\": {\n          \"type\": \"string\"\n        },\n        \"city\": {\n          \"type\": \"string\"\n        },\n        \"state\": {\n          \"type\": \"string\"\n        },\n        \"country\": {\n          \"type\": \"string\"\n        }\n      }\n    }\n  }\n}"
+      },
+      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "name": "Request",
+      "position": {
+        "x": 140,
+        "y": 215
+      }
+    },
+    {
+      "type": "customNode",
+      "content": {
+        "kind": "sum",
+        "config": {
+          "__meta__": {
+            "customHandlerVersion": "v3",
+            "user": "wanghao@geetest.com",
+            "namespace": "710c5ba6752bdb626cda40a65079d382"
+          },
+          "prop1": "{{ a + 10 }}",
+          "passThrough": true,
+          "inputField": null,
+          "outputPath": null,
+          "expressions": [
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "result",
+              "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
+            }
+          ],
+          "expr_asts": [
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "result",
+              "value": [
+                "foo",
+                "myvar",
+                "max([5, 8, 2, 11, 7])",
+                "rand(100)",
+                "\\'fccd;;jny\\'",
+                "3+4"
+              ]
+            }
+          ]
+        }
+      },
+      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "name": "customNode1",
+      "position": {
+        "x": 670,
+        "y": 350
+      }
+    },
+    {
+      "type": "outputNode",
+      "content": {
+        "schema": ""
+      },
+      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
+      "name": "Response",
+      "position": {
+        "x": 955,
+        "y": 280
+      }
+    },
+    {
+      "type": "expressionNode",
+      "content": {
+        "expressions": [
+          {
+            "id": "6332f63e-ed2b-45e3-a0a0-b10996850de2",
+            "key": "a",
+            "value": "11"
+          },
+          {
+            "id": "de88275f-21ba-4bce-b90e-5c9450fc3a9c",
+            "key": "b",
+            "value": "2"
+          },
+          {
+            "id": "1ad83f46-22c7-41d5-965f-d2781e429380",
+            "key": "c",
+            "value": "$.a+$.b"
+          }
+        ],
+        "passThrough": true,
+        "inputField": null,
+        "outputPath": null,
+        "executionMode": "single"
+      },
+      "id": "7247d0ae-b37c-4096-95c7-44fc4905a645",
+      "name": "expression1",
+      "position": {
+        "x": 320,
+        "y": 350
+      }
+    },
+    {
+      "type": "decisionTableNode",
+      "content": {
+        "hitPolicy": "first",
+        "rules": [
+          {
+            "_id": "d3909209-8dfa-4bca-8e25-2446fb7c3744",
+            "ebe471bc-a33f-4a98-a68e-5b1a2eaa0c64": "a==2",
+            "7c12701b-a18e-4f2b-b7be-48015cd7d335": "123"
+          },
+          {
+            "_id": "d54e2da8-fc74-4fd6-a6b3-827825c47e8b",
+            "ebe471bc-a33f-4a98-a68e-5b1a2eaa0c64": "a==1",
+            "7c12701b-a18e-4f2b-b7be-48015cd7d335": "$root"
+          },
+          {
+            "_id": "ec1d7564-3e23-4fc4-b0b4-ad9ae2d9f652",
+            "ebe471bc-a33f-4a98-a68e-5b1a2eaa0c64": "",
+            "7c12701b-a18e-4f2b-b7be-48015cd7d335": "$nodes.expression1.a+$nodes[\"expression1\"].b"
+          }
+        ],
+        "inputs": [
+          {
+            "id": "ebe471bc-a33f-4a98-a68e-5b1a2eaa0c64",
+            "name": "Input"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "7c12701b-a18e-4f2b-b7be-48015cd7d335",
+            "name": "Output",
+            "field": "output"
+          }
+        ],
+        "passThrough": true,
+        "inputField": null,
+        "outputPath": null,
+        "executionMode": "single"
+      },
+      "id": "de77a163-7370-4603-a0b4-c0df15df1957",
+      "name": "decisionTable1",
+      "position": {
+        "x": 415,
+        "y": 150
+      }
+    },
+    {
+      "type": "expressionNode",
+      "content": {
+        "expressions": [
+          {
+            "id": "050d4fb8-c273-4593-8e74-a6260aea8f5b",
+            "key": "expression2_result",
+            "value": "$nodes.expression1.a+$nodes.expression1.b"
+          }
+        ],
+        "passThrough": true,
+        "inputField": null,
+        "outputPath": null,
+        "executionMode": "single"
+      },
+      "id": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564",
+      "name": "expression2",
+      "position": {
+        "x": 700,
+        "y": 215
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "4b1577f5-7031-4125-9f45-fb5c549ed13e",
+      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "edge",
+      "targetId": "7247d0ae-b37c-4096-95c7-44fc4905a645"
+    },
+    {
+      "id": "5f9c5d90-9e33-4af1-805d-e92552f33834",
+      "sourceId": "7247d0ae-b37c-4096-95c7-44fc4905a645",
+      "type": "edge",
+      "targetId": "de77a163-7370-4603-a0b4-c0df15df1957"
+    },
+    {
+      "id": "cce9a995-029d-481c-b22f-54ad8ef744a6",
+      "sourceId": "de77a163-7370-4603-a0b4-c0df15df1957",
+      "type": "edge",
+      "targetId": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564"
+    },
+    {
+      "id": "99132af2-cc87-4bbd-a1ae-6af4444472b6",
+      "sourceId": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564",
+      "type": "edge",
+      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
+    },
+    {
+      "id": "1a0fce98-fdda-4d24-b468-2cf0fd5ee92d",
+      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "edge",
+      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
+    }
+  ]
+}

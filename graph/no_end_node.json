@@ -1,0 +1,47 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "type": "inputNode",
+      "content": {
+        "schema": ""
+      },
+      "id": "dcd794ad-9e16-4600-937a-104385762f04",
+      "name": "request",
+      "position": {
+        "x": 205,
+        "y": 205
+      }
+    },
+    {
+      "type": "expressionNode",
+      "content": {
+        "expressions": [
+          {
+            "id": "90bd330e-09a3-4fad-900c-1da956b2ef51",
+            "key": "c",
+            "value": "12345"
+          }
+        ],
+        "passThrough": true,
+        "inputField": null,
+        "outputPath": null,
+        "executionMode": "single"
+      },
+      "id": "1949fd9d-0d16-44d1-8018-05ade0b4b9aa",
+      "name": "expression1",
+      "position": {
+        "x": 560,
+        "y": 225
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "6bbd0841-4910-4e54-a5a6-7801b854da95",
+      "sourceId": "dcd794ad-9e16-4600-937a-104385762f04",
+      "type": "edge",
+      "targetId": "1949fd9d-0d16-44d1-8018-05ade0b4b9aa"
+    }
+  ]
+}
