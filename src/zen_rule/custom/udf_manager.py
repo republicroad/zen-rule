@@ -1,5 +1,6 @@
 import logging
 import os
+import inspect
 from pprint import pformat
 from typing import List, Dict, Any
 from inspect import signature, Parameter, iscoroutinefunction
@@ -157,3 +158,23 @@ def udf(comments=None, args_info=None, return_info=None,namespace=None):
         return func
     return decorator
 
+
+@udf(
+    comments="default in out functions, Keep parameters unchanged output for debug",
+    namespace="default",
+    args_info=[],  # todo: 以后考虑从入参定义中提取入参类型和名字, 从 Docstring 中提取参数和返回值的注释.
+    return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
+)
+def inout(*args, **kwargs) -> str:
+    """
+    Docstring for inout
+    default in out functions, Keep parameters unchanged output for debug
+    
+    :param args: Description
+    :param kwargs: Description
+        kwargs 包含 zen-rule 传入的节点入参和元信息.
+        其中 _node_input 表示此节点的所有入参.
+    """
+    logger.info(f"{inspect.stack()[0][3]} args:{args}")
+    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    return kwargs.get("_node_input_", {})

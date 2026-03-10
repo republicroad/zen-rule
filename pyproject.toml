@@ -1,12 +1,12 @@
 [project]
 name = "zen-rule"
-version = "0.19.0"
+version = "0.20.0"
 description = "zen-engine enrichment for custom node spec and cache ZenDecision objects for performance"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "pyparsing>=3.1.4",
-    "zen-engine",
+    "zen-engine>=0.48.0",
 ]
 
 [build-system]
@@ -40,3 +40,7 @@ default = true
 [project.urls]
 Homepage = "https://github.com/republicroad/zen-rule"
 Documentation = "https://github.com/republicroad/zen-rule/blob/main/README.md"
+
+
+[project.scripts]
+zenrule = "zen_rule:hello"

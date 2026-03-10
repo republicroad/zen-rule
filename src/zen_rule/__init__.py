@@ -204,7 +204,8 @@ class ZenRule:
             2. zen 表达式函数 bar(zoo('fccdjny',6, 3.14),'a')
             3. zen 表达式 a+string(xxx)
         """
-        # logger.debug(f"request.node:{request.node}")
+        logger.debug(f"request.node: \n{pformat(request.node)}")
+        logger.debug(f"request.input:\n{pformat(request.input)}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         inputField = request.node.get("config",{}).get("inputField")
@@ -222,13 +223,12 @@ class ZenRule:
             "outputPath": outputPath,
         }
 
-        node_input_args = {k: v for k, v in request.input.items() if k != "$nodes"}
         for item in expr_asts:
-            coro_funcs.append(cls.engine_v3(item, node_input_args, context))
+            coro_funcs.append(cls.engine_v3(item, request.input, context))
         _results = await asyncio.gather(*coro_funcs)
         results = {k["key"]: v for k, v in zip(expr_asts, _results)}
         if passThrough:
-            results.update(node_input_args)
+            results.update({k: v for k, v in request.input.items() if k != "$nodes"})
         else:
             pass
         
@@ -256,11 +256,10 @@ class ZenRule:
             expr_ast = exec_expr["value"]
             expr_key = exec_expr["key"]
             
-            operator, *op_arg_expressions  = expr_ast
+            func_name, *op_arg_expressions  = expr_ast
             logger.debug(f"node_input:{node_input}  context:{context}")
-            logger.debug(f"operator:{operator}  args:{op_arg_expressions}")
+            logger.debug(f"func_name:{func_name}  args:{op_arg_expressions}")
             inputfield = context.get("inputField")
-            func_name = operator
             f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
             if f:
                 args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
@@ -272,6 +271,7 @@ class ZenRule:
                     **context,
                     "func_id": expr_id,
                     "expr_id": expr_id,
+                    "_node_input_": node_input
                 }
                 result = await udf_manager(func_name, *args, **kwargs)
             else:

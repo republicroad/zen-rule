@@ -6,6 +6,19 @@ zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
 1. 提供多个 decision 的缓存.  
 2. 提供自定义节点中多个函数调用表达式的定义, 解析和调用规范.  
 
+## roadmap
+
+1. 设计自定义函数的 json schema
+2. 从python函数定义提取入参，返回值的类型和说明.
+3. 增加内置的自定义函数.
+   inout  调试节点输入和输出.
+
+4. 增加命令行程序
+   运行规则图       接受一个json输入和graph.json文件
+   解析规则图       接受一个graph.json文件
+   测试 zen 表达式  接受一个json输入和 zen 表达式
+5. 将 pytest.ini 配置迁移到 pyproject.toml 文件中. 配置集中管理.
+
 ## example
 
 推荐线上使用 decision 缓存模式, 这样规则只需要加载，解析一次后重复使用，提高系统性能.  

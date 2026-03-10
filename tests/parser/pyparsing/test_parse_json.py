@@ -1,4 +1,7 @@
+
+import pytest
 import pyparsing as pp
+from pyparsing.exceptions import ParseException
 
 def get_json_parser():
     # Define JSON basic types
@@ -23,18 +26,19 @@ def get_json_parser():
     return json_parser
 
 
-json_parser = get_json_parser()
+def test_json_parser_by_pyparsing():
+    json_parser = get_json_parser()
 
-test_string = '{"name": "Alice", "age": 30, "isStudent": false, "courses": ["Math", "Science"], "address": null}'
-parsed_result = json_parser.parseString(test_string)
-print(f"{test_string} --> {parsed_result}")
-
-
-test_string = '[{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]'
-parsed_result = json_parser.parseString(test_string)
-print(f"{test_string} --> {parsed_result}")
+    test_string = '{"name": "Alice", "age": 30, "isStudent": false, "courses": ["Math", "Science"], "address": null}'
+    parsed_result = json_parser.parseString(test_string)
+    print(f"{test_string} --> {parsed_result}")
 
 
-test_string = "{'name': 'Alice', 'age': 30}"
-parsed_result = json_parser.parseString(test_string)
-print(f"{test_string} --> {parsed_result}")
+    test_string = '[{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]'
+    parsed_result = json_parser.parseString(test_string)
+    print(f"{test_string} --> {parsed_result}")
+
+    with pytest.raises(ParseException, match="Expected json_object, found \"'\""):
+        test_string = "{'name': 'Alice', 'age': 30}"
+        parsed_result = json_parser.parseString(test_string)
+        print(f"{test_string} --> {parsed_result}")

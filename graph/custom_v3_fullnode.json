@@ -4,7 +4,10 @@
     {
       "type": "inputNode",
       "content": {
-        "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"first_name\": {\n      \"type\": \"string\"\n    },\n    \"last_name\": {\n      \"type\": \"string\"\n    },\n    \"birthday\": {\n      \"type\": \"string\",\n      \"format\": \"date\"\n    },\n    \"address\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"street_address\": {\n          \"type\": \"string\"\n        },\n        \"city\": {\n          \"type\": \"string\"\n        },\n        \"state\": {\n          \"type\": \"string\"\n        },\n        \"country\": {\n          \"type\": \"string\"\n        }\n      }\n    }\n  }\n}"
+        "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"first_name\": {\n      \"type\": \"string\"\n    },\n    \"last_name\": {\n      \"type\": \"string\"\n    },\n    \"birthday\": {\n      \"type\": \"string\",\n      \"format\": \"date\"\n    },\n    \"address\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"street_address\": {\n          \"type\": \"string\"\n        },\n        \"city\": {\n          \"type\": \"string\"\n        },\n        \"state\": {\n          \"type\": \"string\"\n        },\n        \"country\": {\n          \"type\": \"string\"\n        }\n      }\n    }\n  }\n}",
+        "expressions": [],
+        "inputField": null,
+        "outputPath": null
       },
       "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
       "name": "Request",
@@ -23,15 +26,13 @@
             "user": "wanghao@geetest.com",
             "namespace": "710c5ba6752bdb626cda40a65079d382"
           },
-          "prop1": "{{ a + 10 }}",
-          "passThrough": true,
-          "inputField": null,
-          "outputPath": null,
+
           "expressions": [
             {
               "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
               "key": "result",
-              "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
+              "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;$nodes.expression1",
+              "type": "function"
             }
           ],
           "expr_asts": [
@@ -40,21 +41,25 @@
               "key": "result",
               "value": [
                 "foo",
-                "myvar",
+                "myvar ",
                 "max([5, 8, 2, 11, 7])",
                 "rand(100)",
-                "\\'fccd;;jny\\'",
-                "3+4"
+                " 'fccd;;jny' ",
+                "$nodes.expression1"
               ]
             }
-          ]
+          ],
+          "passThrough": true,
+          "inputField": null,
+          "outputPath": null,
+          "executionMode": "single"
         }
       },
       "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
       "name": "customNode1",
       "position": {
-        "x": 670,
-        "y": 350
+        "x": 725,
+        "y": 360
       }
     },
     {
@@ -65,8 +70,8 @@
       "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
       "name": "Response",
       "position": {
-        "x": 955,
-        "y": 280
+        "x": 1225,
+        "y": 240
       }
     },
     {
@@ -143,8 +148,8 @@
       "id": "de77a163-7370-4603-a0b4-c0df15df1957",
       "name": "decisionTable1",
       "position": {
-        "x": 415,
-        "y": 150
+        "x": 505,
+        "y": 155
       }
     },
     {
@@ -165,8 +170,8 @@
       "id": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564",
       "name": "expression2",
       "position": {
-        "x": 700,
-        "y": 215
+        "x": 865,
+        "y": 200
       }
     }
   ],
@@ -174,30 +179,30 @@
     {
       "id": "4b1577f5-7031-4125-9f45-fb5c549ed13e",
       "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
-      "type": "edge",
-      "targetId": "7247d0ae-b37c-4096-95c7-44fc4905a645"
+      "targetId": "7247d0ae-b37c-4096-95c7-44fc4905a645",
+      "type": "edge"
     },
     {
       "id": "5f9c5d90-9e33-4af1-805d-e92552f33834",
       "sourceId": "7247d0ae-b37c-4096-95c7-44fc4905a645",
-      "type": "edge",
-      "targetId": "de77a163-7370-4603-a0b4-c0df15df1957"
+      "targetId": "de77a163-7370-4603-a0b4-c0df15df1957",
+      "type": "edge"
     },
     {
-      "id": "cce9a995-029d-481c-b22f-54ad8ef744a6",
+      "id": "b61cfb4e-ab5f-4e0a-b340-96b97fe1f171",
       "sourceId": "de77a163-7370-4603-a0b4-c0df15df1957",
-      "type": "edge",
-      "targetId": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564"
-    },
-    {
-      "id": "99132af2-cc87-4bbd-a1ae-6af4444472b6",
-      "sourceId": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564",
       "type": "edge",
       "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
     },
     {
-      "id": "1a0fce98-fdda-4d24-b468-2cf0fd5ee92d",
+      "id": "c3794242-dcd9-40ca-b174-0866c42761ab",
       "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "edge",
+      "targetId": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564"
+    },
+    {
+      "id": "d55dec49-d1c6-417f-9f4e-f4eba48c8f98",
+      "sourceId": "ea12ac02-1e28-4d21-bff2-50d3c3fb3564",
       "type": "edge",
       "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
     }

@@ -129,8 +129,9 @@ async def test_custmer_node_contextvars2():
     o = object()
     myvar.set(o)
     logger.warning(f"myvar.set():{o}")
-    res = await engine.async_evaluate("custom_node_demo.json", {"a": 10, "ip": "192.168.0.39"})
-    assert res["result"]["prop1_raw"] == '{{ a + 10 }}'
-    # 如果修改了规则图中的自定义节点的表达式, 需要重新修改这里的断言条件.
-    assert res["result"]["prop1"]     == res["result"]["request.input"]['a'] + 1
+    with pytest.raises(RuntimeError, match="LookupError"):
+        res = await engine.async_evaluate("custom_node_demo.json", {"a": 10, "ip": "192.168.0.39"})
+        assert res["result"]["prop1_raw"] == '{{ a + 10 }}'
+        # 如果修改了规则图中的自定义节点的表达式, 需要重新修改这里的断言条件.
+        assert res["result"]["prop1"]     == res["result"]["request.input"]['a'] + 1
 

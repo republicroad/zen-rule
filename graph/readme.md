@@ -9,7 +9,7 @@
 ## 第三版自定义节点(当前默认规范)
 
 `custom_v3.json` 表示第三版自定义节点规范. 
-
+`custom_v3_fullnode.json` 包含第三版自定义节点，表达式节点，决策表节点.
 
 ### 格式一
 
@@ -17,27 +17,27 @@
 考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
 参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
 
-> foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+> inout;;myvar ;;max([5, 8, 2, 11, 7]);;$nodes;; 'fccd;;jny' ;;3+4
 
-表示 foo 算子传入了五个参数:
+表示 inout 算子传入了五个参数:
 1. zen 表达式变量 myvar
 2. zen 表达式函数 max([5, 8, 2, 11, 7])
-3. zen 表达式 rand(100)
+3. zen 表达式内置变量 $nodes
 4. zen 表达式 'fccd;;jny'
 5. zen 表达式 3+4
 
 
 解析后得到如下结构, 解释执行即可:
 
-> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
+> ["inout", "myvar", "max([5, 8, 2, 11, 7])", "$nodes", "fccd;;jny", "3+4"]
 
 解析逻辑如下:
 
 ```python
 def parse_oprator_expr_v3(expr):
     # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
-    # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
-    # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+    # inout ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
+    # inout;;myvar;;max([5, 8, 2, 11, 7]);;$nodes;; 'fccd;;jny' ;;3+4
     # expr.split(";;")
     pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
     # To split the string by these semicolon:
@@ -54,18 +54,18 @@ def parse_oprator_expr_v3(expr):
 
 这部分需要使用上下无关文法定义解析或者peg语法解析.
 
-> foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
+> inout(myvar,max([5, 8, 2, 11, 7]),$nodes, 'fccd;;jny', 3+4)
 
 
 解析后格式如下:
 
-> [["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
+> [["inout", "myvar", "max([5, 8, 2, 11, 7])", "$nodes", "'fccd;;jny'", "3+4"]]
 
 此实现需要不断的去补充关于 zen 表达式语法结构的解析.  
 详细参考 tests/test_zen_expr_parser.py 中的实现. 
 ```bash
 $ python '/home/ryefccd/workspace/zen-rule/tests/test_zen_expr_parser.py'
-foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
+inout(myvar,max([5, 8, 2, 11, 7]),$nodes, 'fccd;;jny', 3+4) --> [['inout', 'myvar', 'max([5, 8, 2, 11, 7])', '$nodes', "'fccd;;jny'", '3+4']]
 ...
 ```
 
@@ -96,14 +96,14 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
         {
             "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
             "key": "result",
-            "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
+            "value": "inout;;myvar ;;max([5, 8, 2, 11, 7]);;$nodes;; 'fccd;;jny' ;;3+4"
         }
         ],
         "expr_asts": [
         {
             "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
             "key": "result",
-            "value": ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
+            "value": ["inout", "myvar", "max([5, 8, 2, 11, 7])", "$nodes", "\\'fccd;;jny\\'", "3+4"]
         }
         ]
     }
@@ -146,14 +146,14 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
                 {
                     "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
                     "key": "result",
-                    "value": "foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())"
+                    "value": "inout(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())"
                 }
             ],
             "expr_asts": [
                 {
                     "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
                     "key": "result",
-                    "value": [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, {"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, {"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, {"name": "foo", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, "func_value"], [{"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, "func_value"]], "ns": "", "id": "0c509d4654ef443eb621d791d3ffcaa1"}]
+                    "value": [{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, {"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, {"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, {"name": "inout", "args": [["myvar", "var"], [{"name": "bar", "args": [[{"name": "zoo", "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]], "ns": "", "id": "566a36f923b34cbd9c159272adc988ae"}, "func_value"], ["'a'", "string"]], "ns": "", "id": "5d0b81e086d748d4902a35fd85bad974"}, "func_value"], [{"name": "bas", "args": [], "ns": "", "id": "7f8448aad2594b479f6df2e2241707c7"}, "func_value"]], "ns": "", "id": "0c509d4654ef443eb621d791d3ffcaa1"}]
                 }
             ]
         }
@@ -161,7 +161,7 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
 }
 ```
 
-## 第一版自定义节点
+## ~~第一版自定义节点~~
 
 > zen-rule 从 0.17.0 版本开始不支持 custom_v1.json 格式.
 

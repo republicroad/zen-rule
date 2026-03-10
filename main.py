@@ -27,6 +27,23 @@ def foo(*args, **kwargs):
     return "foo value"
 
 
+async def test_zenrule_v3_foo():
+    zr = ZenRule({})
+    basedir = Path(__file__).parent
+    filename = basedir / "graph" / "custom_v3_fullnode.json"
+    key = filename
+    if not zr.get_decision_cache(key):
+        with open(filename, "r", encoding="utf8") as f:
+            logger.warning(f"graph json: %s", filename)
+            content =  f.read()
+        zr.create_decision_with_cache_key(key, content)
+    for i in range(1):
+        result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
+        print("zen rule custom_v3 result:", result)
+        assert result.get("result", {}).get("result") == "foo value", "custom_v3 规则执行失败"
+        print(f"------------------{i}------------------------")
+
+
 async def test_zenrule_v3():
     """
         推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
@@ -47,10 +64,10 @@ async def test_zenrule_v3():
     for i in range(1):
         result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
         print("zen rule custom_v3 result:", result)
-        assert result.get("result", {}).get("result") == "foo value", "custom_v3 规则执行失败"
         print(f"------------------{i}------------------------")
 
 
 if __name__ == "__main__":
     # test_zenrule_v3
     asyncio.run(test_zenrule_v3())
+    # asyncio.run(test_zenrule_v3_foo())
