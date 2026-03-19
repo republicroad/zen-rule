@@ -8,9 +8,10 @@ import asyncio
 import inspect
 
 import zen
-from zen import ZenDecision
-from .custom.udf_manager import udf_manager, udf, FuncArg, FuncRet
-from .custom import op_args_combination, parse_oprator_expr_v3
+from zen import ZenDecision, ZenDecisionContent
+from .udf import udf_manager, udf, FuncArg, FuncRet
+from .parser import parse_oprator_expr_v3
+from .contrib import *
 # from zen import EvaluateResponse  # cannot import
 zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
 logger = logging.getLogger(__name__)
@@ -76,7 +77,8 @@ class ZenRule:
         """
         content_ = self.graph_addons(content)
         # logger.debug(f"after graph_addons: {content_}")
-        return self.engine.create_decision(content_)
+        zen_decision_content = ZenDecisionContent(content_)
+        return self.engine.create_decision(zen_decision_content)
 
     def create_decision_with_cache_key(self, key, content) -> ZenDecision:
         """
@@ -204,8 +206,8 @@ class ZenRule:
             2. zen 表达式函数 bar(zoo('fccdjny',6, 3.14),'a')
             3. zen 表达式 a+string(xxx)
         """
-        logger.debug(f"request.node: \n{pformat(request.node)}")
-        logger.debug(f"request.input:\n{pformat(request.input)}")
+        # logger.debug(f"request.node: \n{pformat(request.node)}")
+        # logger.debug(f"request.input:\n{pformat(request.input)}")
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         inputField = request.node.get("config",{}).get("inputField")
@@ -260,12 +262,13 @@ class ZenRule:
             logger.debug(f"node_input:{node_input}  context:{context}")
             logger.debug(f"func_name:{func_name}  args:{op_arg_expressions}")
             inputfield = context.get("inputField")
-            f = udf_manager.udf_info(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
+            f = udf_manager.udf_function_schema(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
             if f:
                 args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
-                oprator_kwargs = op_args_combination(args, f)
-                logger.debug(f"ast_exec {func_name} args: {args}")
-                logger.debug(f"ast_exec {func_name} kwargs: {oprator_kwargs}")
+                # oprator_kwargs = op_args_combination(args, f)
+                oprator_kwargs = udf_manager.func_bind_params(func_name, args)
+                logger.debug("ast_exec %s args: %s", func_name, args)
+                logger.debug("ast_exec %s kwargs: %s", func_name, oprator_kwargs)
                 kwargs = {
                     **oprator_kwargs,
                     **context,
@@ -273,7 +276,7 @@ class ZenRule:
                     "expr_id": expr_id,
                     "_node_input_": node_input
                 }
-                result = await udf_manager(func_name, *args, **kwargs)
+                result = await udf_manager(func_name, *(), **kwargs)
             else:
                 if func_name:
                     result = {"error": f"udf {func_name} not found"}

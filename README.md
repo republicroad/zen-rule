@@ -8,16 +8,19 @@ zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
 
 ## roadmap
 
-1. 设计自定义函数的 json schema
-2. 从python函数定义提取入参，返回值的类型和说明.
-3. 增加内置的自定义函数.
+- [x] 设计自定义函数的 json schema.
+- [ ] 自定义函数 json schema 支持 namespace 分组.
+- [x] 从python函数定义提取入参及其类型和说明.
+- [ ] 从python函数定义提取返回值及其类型和说明.
+- [x] 增加内置的自定义函数.
    inout  调试节点输入和输出.
 
-4. 增加命令行程序
+- [ ] 增加命令行程序
    运行规则图       接受一个json输入和graph.json文件
    解析规则图       接受一个graph.json文件
    测试 zen 表达式  接受一个json输入和 zen 表达式
-5. 将 pytest.ini 配置迁移到 pyproject.toml 文件中. 配置集中管理.
+- [ ] 将 pytest.ini 配置迁移到 pyproject.toml 文件中. 配置集中管理.
+
 
 ## example
 
@@ -96,9 +99,9 @@ async def test_zenrule_with_loader():
 考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
 参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
 
-> foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+> inout;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
 
-表示 foo 算子传入了五个参数:
+表示 inout 算子传入了五个参数:
 1. zen 表达式变量 myvar
 2. zen 表达式函数 max([5, 8, 2, 11, 7])
 3. zen 表达式 rand(100)
@@ -108,15 +111,15 @@ async def test_zenrule_with_loader():
 
 解析后得到如下结构, 解释执行即可:
 
-> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
+> ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
 
 解析逻辑如下:
 
 ```python
 def parse_oprator_expr_v3(expr):
     # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
-    # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
-    # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+    # inout ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
+    # inout;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
     # expr.split(";;")
     pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
     # To split the string by these semicolon:
@@ -133,18 +136,18 @@ def parse_oprator_expr_v3(expr):
 
 这部分需要使用上下无关文法定义解析或者peg语法解析.
 
-> foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
+> inout(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
 
 
 解析后格式如下:
 
-> [["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
+> [["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
 
 此实现需要不断的去补充关于 zen 表达式语法结构的解析.  
 详细参考 tests/test_zen_expr_parser.py 中的实现. 
 ```bash
 $ python '/home/ryefccd/workspace/zen-rule/tests/test_zen_expr_parser.py'
-foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
+inout(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['inout', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
 ...
 ```
 
@@ -177,14 +180,14 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
         {
             "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
             "key": "result",
-            "value": "foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
+            "value": "inout;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
         }
         ],
         "expr_asts": [/*expr_asts 是后端解析动态产生的*/
         {
             "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
             "key": "result",
-            "value": ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
+            "value": ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
         }
         ]
     }
@@ -200,6 +203,10 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
 > uv pip install -e .
 
 使用此命令将当前包以编辑模式(--editable, -e)安装在当前的虚拟环境中, 这样可以使用 `python main.py` 运行程序即可.
+
+> uv pip list 
+
+查看当前包的版本
 
 ```bash
 (zen-rule) ryefccd@republic:~/workspace/zen-rule$ uv pip list
@@ -243,6 +250,7 @@ password = <PyPI token>
 ## unit tests
 
 增加多个python版本的测试.
+[Python testing in Visual Studio Code](https://code.visualstudio.com/docs/python/testing)  
 
 ## logging
 

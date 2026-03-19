@@ -4,3 +4,10 @@ pyparsing==3.2.3
     # via zen-rule (pyproject.toml)
 zen-engine>=0.48.0
     # via zen-rule (pyproject.toml)
+docstring-parser
+typing-extensions
+typing-inspection
+pydantic-core
+annotated-types
+pydantic>=2.12.5
+
