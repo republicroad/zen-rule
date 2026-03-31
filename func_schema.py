@@ -51,8 +51,10 @@ def bar(c: int, b:Annotated[str, "Annotated tips for arg b"],
 
 
 if __name__ == "__main__":
-    from zen_rule import udf_manager
     from pprint import pprint
-    pprint(udf_manager.udf_function_schema_tools(), sort_dicts=False)
+    from zen_rule import ZenRule
+    # from zen_rule import udf_manager
+    # pprint(udf_manager.udf_function_schema_tools(), sort_dicts=False)
     # print("-------------------")
     # pprint(udf_manager.get_udf_info(), sort_dicts=False)
+    pprint(ZenRule.udf_function_schema_tools(), sort_dicts=False)

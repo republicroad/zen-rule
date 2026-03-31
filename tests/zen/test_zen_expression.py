@@ -648,6 +648,7 @@ def test_zen_expression_array():
     assert zen.evaluate_expression("some(map([1, 2, 3], # * 2), # > 5)") == True
     assert zen.evaluate_expression("all(map([1, 2, 3], # + 2), # > 2)" ) == True
     assert zen.evaluate_expression("contains(map([1, 2, 3], # * 2), 6)") == True
+    assert zen.evaluate_expression("merge([[1, 2], [3, 4], [5]])", {}) == [1, 2, 3, 4, 5]
 
 
     

@@ -9,7 +9,7 @@ zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
 ## roadmap
 
 - [x] 设计自定义函数的 json schema.
-- [ ] 自定义函数 json schema 支持 namespace 分组.
+- [x] 自定义函数 json schema 支持 namespace 分组.
 - [x] 从python函数定义提取入参及其类型和说明.
 - [ ] 从python函数定义提取返回值及其类型和说明.
 - [x] 增加内置的自定义函数.
@@ -93,8 +93,6 @@ async def test_zenrule_with_loader():
 ![alt text](docs/custom_nodes.png)  
 
 
-### 格式一
-
 如果支持不同自定义算子的嵌套, 那么这些节点分类就形同虚设.
 考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
 参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
@@ -111,7 +109,7 @@ async def test_zenrule_with_loader():
 
 解析后得到如下结构, 解释执行即可:
 
-> ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
+> ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]
 
 解析逻辑如下:
 
@@ -128,30 +126,6 @@ def parse_oprator_expr_v3(expr):
     return parts
 ```
 
-### 格式二
-
-第二种就是保留技术更为熟悉的函数嵌套调用结构.
-这种格式需要解析函数的嵌套调用, 还需要解析各种常量语法结构, 比如 数字， 布尔，字符串，数组，object对象, 
-以及各种数组和字符串下标索引访问和切片访问语法格式, 还有中缀表达式(算术运算和逻辑运算), 非空判定, 三元表达式.
-
-这部分需要使用上下无关文法定义解析或者peg语法解析.
-
-> inout(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
-
-
-解析后格式如下:
-
-> [["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
-
-此实现需要不断的去补充关于 zen 表达式语法结构的解析.  
-详细参考 tests/test_zen_expr_parser.py 中的实现. 
-```bash
-$ python '/home/ryefccd/workspace/zen-rule/tests/test_zen_expr_parser.py'
-inout(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['inout', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
-...
-```
-
-目前使用 pyparsing 来解析, 将来考虑使用[lark](https://github.com/lark-parser/lark) 来做语法解析.
 
 ### 解析后格式
 

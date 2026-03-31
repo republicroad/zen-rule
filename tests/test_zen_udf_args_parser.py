@@ -17,7 +17,7 @@ import uuid
 import pytest
 import zen
 from zen_rule import ZenRule, udf, FuncArg, FuncRet
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 graphjson = """
@@ -94,20 +94,23 @@ class ExprEval:
     input: dict
     output: str
 
-zen_expression_demos = []
-with open(file_path) as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=';')
-    line_count = 0
-    header = next(csv_reader)
-    logger.debug(f"headers:{header}")
-    for row in csv_reader:
-        if len(row) == 3:
-            logger.debug(row)
-            _args = row[1].strip()
-            args = zen.evaluate_expression(_args) if _args else {}
-            item = ExprEval(expr=row[0], input=args, output=row[2])
-            zen_expression_demos.append(item)
-    logger.debug(f'zen expressions: {len(zen_expression_demos)} rules.')
+
+def load_zen_expressions():
+    zen_expression_demos = []
+    with open(file_path) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=';')
+        line_count = 0
+        header = next(csv_reader)
+        logger.debug(f"headers:{header}")
+        for row in csv_reader:
+            if len(row) == 3:
+                logger.debug(row)
+                _args = row[1].strip()
+                args = zen.evaluate_expression(_args) if _args else {}
+                item = ExprEval(expr=row[0], input=args, output=row[2])
+                zen_expression_demos.append(item)
+        logger.warning(f'zen expressions: {len(zen_expression_demos)} rules.')
+    return zen_expression_demos
 
 
 # 默认情况下使用位置参数传参.
@@ -127,8 +130,12 @@ def foo(*args, **kwargs):
     """
     logger.debug(f"{inspect.stack()[0][3]} args:{args}")
     logger.debug(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
-    
-    return args[0]
+    result = {
+      k:v for k,v in kwargs.items() if k not in {'__meta__', '_node_input_', 'expr_id', 'func_id',
+      'inputField', 'node_id', 'outputPath', 'passThrough'}
+    }
+    print(result)
+    return result.popitem()[1]
 
 
 def loader(key):
@@ -155,14 +162,15 @@ def udf_args_helper(graph, rule, expr_key):
     return res
 
 
+@pytest.mark.asyncio
 async def test_zenrule():
     """
         把这个改造为pytest单元测试的的最佳实践.
     """
     zr = ZenRule({})
     key = "udf.json"
-    for i, rule in enumerate(zen_expression_demos):
-      logger.info(f"round: {i}")
+    for i, rule in enumerate(load_zen_expressions()):
+      logger.info(f"round: {i}: {rule}")
       expr_key = str(i)
       content = udf_args_helper(graphjson, rule, expr_key)
       zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision

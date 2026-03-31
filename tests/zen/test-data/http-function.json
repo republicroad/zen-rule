@@ -3,6 +3,9 @@
   "nodes": [
     {
       "type": "inputNode",
+      "content": {
+        "schema": ""
+      },
       "id": "2d560c7d-3528-43ed-88d8-28f4d8ef17be",
       "name": "request",
       "position": {
@@ -13,7 +16,7 @@
     {
       "type": "functionNode",
       "content": {
-        "source": "import zen from 'zen';\nimport http from 'http';\n\n/** @type {Handler} **/\nexport const handler = async (input) => {\n  const r = await http.get('https://fakestoreapi.com/products/1');\n\n  return r;\n};\n"
+        "source": "import zen from 'zen';\nimport http from 'http';\n\n/** @type {Handler} **/\nexport const handler = async (input) => {\n  const r = await http.get('https://jsonplaceholder.typicode.com/todos/1');\n  // https://jsonplaceholder.typicode.com/todos/1\n  // https://fakestoreapi.com/products/1\n\n  return r;\n};\n"
       },
       "id": "66cb12f4-4cdd-4422-850b-4534f959407d",
       "name": "function1",

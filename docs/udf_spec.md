@@ -12,8 +12,6 @@
 ![alt text](custom_nodes.png)  
 
 
-### 格式一
-
 如果支持不同自定义算子的嵌套, 那么这些节点分类就形同虚设.
 考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
 参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
@@ -30,7 +28,7 @@
 
 解析后得到如下结构, 解释执行即可:
 
-> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "fccd;;jny", "3+4"]
+> ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]
 
 解析逻辑如下:
 
@@ -45,30 +43,6 @@ def parse_oprator_expr_v3(expr):
     parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
     return parts
 ```
-
-### 格式二
-
-第二种就是保留技术更为熟悉的函数嵌套调用结构.
-这种格式需要解析函数的嵌套调用, 还需要解析各种常量语法结构, 比如 数字， 布尔，字符串，数组，object对象, 
-以及各种数组和字符串下标索引访问和切片访问语法格式, 还有中缀表达式(算术运算和逻辑运算), 非空判定, 三元表达式.
-
-这部分需要使用上下无关文法定义解析或者peg语法解析.
-
-> foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4)
-
-
-解析后格式如下:
-
-> [["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]]
-
-此实现需要不断的去补充关于 zen 表达式语法结构的解析.  
-详细参考 tests/test_zen_expr_parser.py 中的实现. 
-```bash
-$ python '/home/ryefccd/workspace/zen-rule/tests/test_zen_expr_parser.py'
-foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar', 'max([5, 8, 2, 11, 7])', 'rand(100)', "'fccd;;jny'", '3+4']]
-...
-```
-
 
 ### 解析后格式
 
@@ -336,42 +310,3 @@ foo(myvar,max([5, 8, 2, 11, 7]),rand(100), 'fccd;;jny', 3+4) --> [['foo', 'myvar
 ]
 
 ```
-
-
-## 语法解析
-
-### Non-Strict JavaScript Objects
-
-Parsing Non-Strict JavaScript Objects (e.g., with single quotes, comments, trailing commas)
-
-- [chompjs](https://github.com/Nykakin/chompjs): Designed specifically for parsing JavaScript objects that are not strictly JSON.
-
-```python
-    import chompjs
-
-    js_object_string = "{ name: 'Bob', hobbies: ['reading', 'hiking'], /* a comment */ }"
-    python_dict = chompjs.parse_js_object(js_object_string)
-
-    print(python_dict)
-```
-
-- PyYAML:  Can parse a broader range of formats, including a subset of JavaScript object notation.
-
-```python
-    import yaml
-
-    js_object_string = """
-    {
-        name: 'Charlie',
-        data: {
-            value: 123,
-            status: true,
-        }
-    }
-    """
-    python_dict = yaml.safe_load(js_object_string)
-
-    print(python_dict)
-```
-
-[How to convert raw javascript object to a dictionary?](https://stackoverflow.com/questions/24027589/how-to-convert-raw-javascript-object-to-a-dictionary)  

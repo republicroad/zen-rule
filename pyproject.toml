@@ -1,12 +1,11 @@
 [project]
 name = "zen-rule"
-version = "0.21.0"
+version = "0.22.0"
 description = "zen-engine enrichment for custom node spec and cache ZenDecision objects for performance"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "pyparsing==3.2.3",
-    "zen-engine>=0.48.0",
+    "zen-engine>=0.53.0",
     "docstring-parser",
     "typing-extensions",
     "typing-inspection",

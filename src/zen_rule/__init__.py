@@ -2,6 +2,7 @@
 from typing import Any, Optional, TypedDict, Literal, Awaitable, Union
 import logging
 import json
+import re
 from pathlib import Path
 from pprint import pprint, pformat
 import asyncio
@@ -9,8 +10,7 @@ import inspect
 
 import zen
 from zen import ZenDecision, ZenDecisionContent
-from .udf import udf_manager, udf, FuncArg, FuncRet
-from .parser import parse_oprator_expr_v3
+from .udf import UDFManager, udf_manager, udf, FuncArg, FuncRet
 from .contrib import *
 # from zen import EvaluateResponse  # cannot import
 zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
@@ -53,6 +53,7 @@ def loader(key):
 
 class ZenRule:
     custom_handler_meta = "__meta__"
+    udf_manager = udf_manager
     def __init__(self, options: Optional[dict] = None) -> None: 
         # {"customHandler": self.custom_handler_v3, "loader": self.loader}
         if options:
@@ -179,7 +180,7 @@ class ZenRule:
                 if custom_expressions:
                     for func_item in custom_expressions:
                         item = {**func_item}
-                        item["value"] = parse_oprator_expr_v3(func_item["value"])
+                        item["value"] = self.parse_oprator_expr_v3(func_item["value"])
                         expr_asts.append(item)
                     node["content"]["config"]["expr_asts"] = expr_asts
 
@@ -262,12 +263,11 @@ class ZenRule:
             logger.debug(f"node_input:{node_input}  context:{context}")
             logger.debug(f"func_name:{func_name}  args:{op_arg_expressions}")
             inputfield = context.get("inputField")
-            f = udf_manager.udf_function_schema(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
+            f = cls.udf_manager.udf_function_schema(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
             if f:
                 args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
-                # oprator_kwargs = op_args_combination(args, f)
-                oprator_kwargs = udf_manager.func_bind_params(func_name, args)
-                logger.debug("ast_exec %s args: %s", func_name, args)
+                oprator_kwargs = cls.udf_manager.func_bind_params(func_name, args)
+                # logger.debug("ast_exec %s args: %s", func_name, args)
                 logger.debug("ast_exec %s kwargs: %s", func_name, oprator_kwargs)
                 kwargs = {
                     **oprator_kwargs,
@@ -276,7 +276,7 @@ class ZenRule:
                     "expr_id": expr_id,
                     "_node_input_": node_input
                 }
-                result = await udf_manager(func_name, *(), **kwargs)
+                result = await cls.udf_manager(func_name, *(), **kwargs)
             else:
                 if func_name:
                     result = {"error": f"udf {func_name} not found"}
@@ -294,7 +294,31 @@ class ZenRule:
 
     def get_content_cache(self, key):
         return self.content_cache.get(key, None)
- 
+
+    def parse_oprator_expr_v3(self, expr):
+        """
+            v3自定义节点中的算子 oprater 调用支持两种格式:
+            1.  ;; 当作起始符号且作为oprater及参数的分隔符
+                foo;;myvar ;;max([5,8,2,11, 7]);;rand(100)+120;;3+4;; 'singel;;quote' ;;"double;;quote" ;;`backquote;; ${bar}`
+
+            2. 使用函数调用嵌套(todo:以后支持)
+                foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), a+string(xxx))
+        """
+        # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
+        # foo ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
+        # foo;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
+        # expr.split(";;")
+        # pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
+        pattern = re.compile(r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)""")
+        # To split the string by these semicolon:
+        _parts = re.split(pattern, expr)
+        parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
+        return parts
+
+    @classmethod
+    def udf_function_schema_tools(cls):
+        return cls.udf_manager.udf_function_schema_tools()
+
 
 __all__ = [
     ZenRule,

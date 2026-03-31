@@ -1,5 +1,6 @@
 import logging
 import inspect
+from itertools import groupby
 from pprint import pformat
 from typing import List, Dict, Any
 from inspect import signature, Parameter, iscoroutinefunction
@@ -235,7 +236,20 @@ class UDFManager:
         return self.funcs.get(name)
 
     def udf_function_schema_tools(self) -> Dict[str, Any]:
-        return [data for data in self.funcs.values()]
+        d = []
+        ## groupby list must sorted
+        func_tools = [data for data in self.funcs.values()]
+        group_key_func = lambda x: x.get("namespace", "default")
+        for key, group in groupby(sorted(func_tools, key=group_key_func), key=group_key_func):
+            # simulate openai function calling schema
+            namespace_funcs = {
+                "type": "namespace",
+                "name": key,
+                "description": "",  # 以后从模块的顶层文档中提取或者增加显示定义.
+                "tools": list(group)
+            }
+            d.append(namespace_funcs)
+        return d
 
     def func_bind_params(self, name: str, args: list):
         """
