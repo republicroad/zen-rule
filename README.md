@@ -131,40 +131,47 @@ def parse_oprator_expr_v3(expr):
 
 ```json
 {
-    "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
-    "type": "customNode",
-    "position": {
-    "x": 470,
-    "y": 240
-    },
-    "name": "customNode1",
-    "content": {
-    "kind": "sum",
-    "config": {
-        "version": "v3",
-        "meta": {
-        "user": "wanghao@geetest.com",
-        "proj": "proj_id"
+  "id": "ba056342-f76f-4d00-a739-4f906fbe0401",
+  "metadata": {
+    "version": "1.0.0",
+    "author": "ryefccd@gmail.com",
+    "description": "",
+    "tags": [
+      "login",
+      "risk control"
+    ]
+  },
+    {
+        "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+        "type": "customNode",
+        "position": {
+        "x": 470,
+        "y": 240
         },
-        "prop1": "{{ a + 10 }}",
-        "passThrough": true,
-        "inputField": null,
-        "outputPath": null,
-        "expressions": [/*expressions 是约定的前端格式*/
-        {
-            "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
-            "key": "result",
-            "value": "inout;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
+        "name": "customNode1",
+        "content": {
+        "kind": "sum",
+        "config": {
+            "prop1": "{{ a + 10 }}",
+            "passThrough": true,
+            "inputField": null,
+            "outputPath": null,
+            "expressions": [/*expressions 是约定的前端格式*/
+            {
+                "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+                "key": "result",
+                "value": "inout;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
+            }
+            ],
+            "expr_asts": [/*expr_asts 是后端解析动态产生的*/
+            {
+                "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+                "key": "result",
+                "value": ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
+            }
+            ]
         }
-        ],
-        "expr_asts": [/*expr_asts 是后端解析动态产生的*/
-        {
-            "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
-            "key": "result",
-            "value": ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
         }
-        ]
-    }
     }
 }
 ```

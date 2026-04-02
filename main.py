@@ -8,7 +8,7 @@ from zen_rule import ZenRule, udf, FuncArg, FuncRet
 
 from utils import httpsession
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.NOTSET)
 logger = logging.getLogger(__name__)
 
 

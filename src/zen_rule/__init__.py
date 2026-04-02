@@ -29,10 +29,10 @@ async def custom_async_handler(request):
     """
     # p1 = request.get_field("prop1")  # 没有prop1属性会报错.
     # await asyncio.sleep(0.1)
-    logger.debug(f"request:{request}")
-    logger.debug(f"request attrs:{dir(request)}")
+    logger.debug("request: %s", request)
+    logger.debug("request attrs: %s", dir(request))
     result = zen.evaluate_expression('rand(100)', request.input)
-    logger.debug(f"return value:{result}")
+    logger.debug("return value: %s", result)
     return {
         "output": {"sum": 112}
     }
@@ -47,7 +47,7 @@ def loader(key):
     """
     basedir = Path(__file__).parent
     with open(basedir / "custom" / key, "r", encoding="utf8") as f:
-        logger.warning(f"graph json: %s", basedir / "custom" / key)
+        logger.warning("graph json: %s", basedir / "custom" / key)
         return f.read()
 
 
@@ -77,7 +77,7 @@ class ZenRule:
             如果不想 decision 被缓存, 那么请使用 create_decision 方法来获取 decision.
         """
         content_ = self.graph_addons(content)
-        # logger.debug(f"after graph_addons: {content_}")
+        # logger.debug("after graph_addons: %s", content_)
         zen_decision_content = ZenDecisionContent(content_)
         return self.engine.create_decision(zen_decision_content)
 
@@ -133,14 +133,14 @@ class ZenRule:
     def evaluate(self, key, ctx, options=None) -> EvaluateResponse:
         # return self.engine.evaluate(key, ctx, options)  # engine.evaluate 会隐式调用 loader 函数.
         decision = self.get_decision_cache(key)
-        logger.debug(f"evaluate decision: {decision}")
+        logger.debug("evaluate decision: %s", decision)
         return decision.evaluate(ctx, options)
 
     def async_evaluate(self, key, ctx, options=None) -> Awaitable[EvaluateResponse]:
         # return self.engine.async_evaluate(key, ctx, options)  # engine.async_evaluate 会隐式调用 loader 函数.
         decision = self.get_decision_cache(key)
         # decision = self.engine.get_decision(key)
-        logger.debug(f"async_evaluate decision: {decision}")
+        logger.debug("async_evaluate decision: %s", decision)
         return decision.async_evaluate(ctx, options)
 
     def graph_addons(self, graph_content):
@@ -184,7 +184,7 @@ class ZenRule:
                         expr_asts.append(item)
                     node["content"]["config"]["expr_asts"] = expr_asts
 
-        logger.debug(f"rule_graph:{pformat(rule_graph)}")
+        logger.debug("rule_graph: %s", pformat(rule_graph))
         return json.dumps(rule_graph)
 
     @classmethod
@@ -207,8 +207,8 @@ class ZenRule:
             2. zen 表达式函数 bar(zoo('fccdjny',6, 3.14),'a')
             3. zen 表达式 a+string(xxx)
         """
-        # logger.debug(f"request.node: \n{pformat(request.node)}")
-        # logger.debug(f"request.input:\n{pformat(request.input)}")
+        # logger.debug(f"request.node: \n%s", pformat(request.node))
+        # logger.debug(f"request.input:\n%s", pformat(request.input))
         # graph json 要放在 zen engine zen rule 中进行解析, 解析的自定义表达式函数再使用自定义函数表达式来执行.
         expr_asts = request.node["config"].get("expr_asts", [])
         inputField = request.node.get("config",{}).get("inputField")
@@ -238,7 +238,7 @@ class ZenRule:
         if outputPath:
             # get nested path like a.b.c for dict a["b"]["c"]
             results = zen.evaluate_expression(f"{outputPath}={'_'}", {"_": results})  # 先创建路径
-        logger.warning(f"custom v3 result:{results}")
+        logger.debug("custom v3 result: %s", results)
         return {
             "output": results
         }
@@ -260,12 +260,14 @@ class ZenRule:
             expr_key = exec_expr["key"]
             
             func_name, *op_arg_expressions  = expr_ast
-            logger.debug(f"node_input:{node_input}  context:{context}")
-            logger.debug(f"func_name:{func_name}  args:{op_arg_expressions}")
+            logger.debug("node_input: %s  context: %s", node_input, context)
+            logger.debug("func_name: %s  literal args: %s", func_name, op_arg_expressions)
             inputfield = context.get("inputField")
             f = cls.udf_manager.udf_function_schema(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
             if f:
+                ## 变量求值
                 args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
+                ## 绑定参数和形参, 并转化参数值的类型
                 oprator_kwargs = cls.udf_manager.func_bind_params(func_name, args)
                 # logger.debug("ast_exec %s args: %s", func_name, args)
                 logger.debug("ast_exec %s kwargs: %s", func_name, oprator_kwargs)
@@ -282,7 +284,7 @@ class ZenRule:
                     result = {"error": f"udf {func_name} not found"}
                 else:
                     result = {"error": "empty udf name not allowed"}
-            logger.debug(f"{func_name} calling ->: {result}")
+            logger.debug("%s calling result->: %s", func_name, result)
             return result
         except Exception as e:
             logger.error(e, exc_info=True)

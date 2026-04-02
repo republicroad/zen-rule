@@ -1,3 +1,4 @@
+import time
 import logging
 import inspect
 from itertools import groupby
@@ -20,6 +21,14 @@ py_json_type_maps = {
 }
 json_py_type_maps = {v:k for k,v in py_json_type_maps.items()}
 py_json_type_maps[tuple] = "array"
+
+
+def jsonT2pyT(json_type: str):
+    return json_py_type_maps.get(json_type, str)
+
+
+def pyT2jsonT(py_type: type):
+    return py_json_type_maps.get(py_type, 'string')
 
 
 def namespace_split(target,namespace=None) -> str:
@@ -81,14 +90,14 @@ def function_return_schema(f):
         return_schema = {
             'properties': {},
             'title': '',
-            'type': py_json_type_maps.get(func_sig.return_annotation),
+            'type': pyT2jsonT(func_sig.return_annotation),
         }
     elif func_sig.return_annotation in {list, tuple}:
         ## from list, tuple generate json schema
         return_schema = {
             'properties': {},
             'title': '',
-            'type': py_json_type_maps.get(func_sig.return_annotation),
+            'type': pyT2jsonT(func_sig.return_annotation),
         }
     elif func_sig.return_annotation in {dict}:
         ## from dict generate json schema
@@ -200,17 +209,6 @@ class UDFManager:
         ## 实际参数定义在udf装饰器中的args_info列表中的 FuncArg 实例上.
         ## 需要将这部分的参数定义也包含在 function json schema 的 parameters 参数中.
         func_schema = function_schema(func)
-        decorated_args = [i for i in self.functions[func.__name__]["arguments"]
-                          if i.get("arg_name") not in {"args", "kwargs"}]
-        if decorated_args:
-            d = {i.get("arg_name"): 
-            (
-                json_py_type_maps.get(i.get("arg_type"), None),
-                Field(i.get("defaults"), description=i.get("comments"))
-            )
-            for i in decorated_args}
-            m = create_model(func.__name__, **d)
-            func_schema['parameters'] = m.model_json_schema()
         func_schema['namespace'] = namespace_split(func.__module__, namespace=namespace)
         func_schema['kind'] = func_schema['namespace'].split('.')[-1]
         self.funcs[func.__name__] = func_schema
@@ -262,7 +260,10 @@ class UDFManager:
             }
         """
         f = self.udf_function_schema(name)
-        param_with_values = {name: v for (name, _), v in zip(f["parameters"]["properties"].items(), args)}
+        # 未知的 json 类型则转化为字符串
+        param_with_values = {name: jsonT2pyT(schema.get("type"))(v)
+              for (name, schema), v in zip(f["parameters"]["properties"].items(), args)}
+        # param_with_values = {name: v for (name, _), v in zip(f["parameters"]["properties"].items(), args)}
         return param_with_values
 
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
@@ -272,12 +273,14 @@ class UDFManager:
             然后执行器调用真正的udf函数管理和执行器.
         """
         if udf_name in self.functions:
-      
+            t1 = time.time()
             func = self.functions[udf_name]["func"]
             if iscoroutinefunction(func):
-                return await func(*args, **kwargs)
+                result = await func(*args, **kwargs)
             else:
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+            logger.debug("%s cost: %s", udf_name, time.time() - t1)
+            return result
         else:
             raise ValueError(f"Function '{udf_name}' is not registered in UDFManager")
 

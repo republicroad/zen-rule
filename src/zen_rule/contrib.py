@@ -1,5 +1,6 @@
 import logging
 import inspect
+import sys
 from .udf import udf, FuncArg
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,8 @@ def inout(*args, **kwargs) -> str:
         kwargs 包含 zen-rule 传入的节点入参和元信息.
         其中 _node_input 表示此节点的所有入参.
     """
-    logger.info(f"{inspect.stack()[0][3]} args:{args}")
-    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
+    logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
     return kwargs.get("_node_input_", {})
 
 
@@ -45,6 +46,6 @@ def func_without_args(*args, **kwargs) -> str:
         kwargs 包含 zen-rule 传入的节点入参和元信息.
         其中 _node_input 表示此节点的所有入参.
     """
-    logger.info(f"{inspect.stack()[0][3]} args:{args}")
-    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
+    logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
     return kwargs.get("_node_input_", {})
