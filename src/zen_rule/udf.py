@@ -10,7 +10,7 @@ from docstring_parser import parse
 
 logger = logging.getLogger(__name__)
 
-py_json_type_maps = {
+pyT_jsonT_maps = {
     None: 'null',
     bool: 'boolean',
     str: 'string',
@@ -19,16 +19,52 @@ py_json_type_maps = {
     int: 'integer',
     float: 'number'
 }
-json_py_type_maps = {v:k for k,v in py_json_type_maps.items()}
-py_json_type_maps[tuple] = "array"
+json_py_type_maps = {v:k for k,v in pyT_jsonT_maps.items()}
+pyT_jsonT_maps[tuple] = "array"
+
+pyT_defaults_maps = {
+    None: None,
+    bool: False,  # bool()
+    str: '',      # str()
+    dict: {},     # dict()
+    list: [],     # list()
+    tuple: (),    # tuple()
+    int: 0,       # int()
+    float: 0.0    # float()
+}
 
 
 def jsonT2pyT(json_type: str):
+    # 未知的 json 类型则转化为字符串
     return json_py_type_maps.get(json_type, str)
 
 
 def pyT2jsonT(py_type: type):
-    return py_json_type_maps.get(py_type, 'string')
+    return pyT_jsonT_maps.get(py_type, 'string')
+
+
+def jsonTV2pyTV(v: Any, json_type: Any, default: Any=None):
+    """
+    Docstring for jsonTV2pyTV. now ignore default value.
+    todo: json_type 以后考虑支持复合类型
+    
+    :param v: Description
+    :type v: Any
+    :param json_type: Description
+    :type json_type: Any
+    :param default: Description
+    :type default: Any
+    """
+    _T =  jsonT2pyT(json_type)
+    if _T is None:
+        value = v
+    else:
+        try:
+            value = _T(v)
+        except Exception as e:
+            logger.debug("error:%s _T:%s v:%s", e, _T, v, exc_info=True)
+            value = pyT_defaults_maps.get(_T, None)
+    return value
 
 
 def namespace_split(target,namespace=None) -> str:
@@ -242,6 +278,7 @@ class UDFManager:
             # simulate openai function calling schema
             namespace_funcs = {
                 "type": "namespace",
+                "title": key,
                 "name": key,
                 "description": "",  # 以后从模块的顶层文档中提取或者增加显示定义.
                 "tools": list(group)
@@ -260,10 +297,8 @@ class UDFManager:
             }
         """
         f = self.udf_function_schema(name)
-        # 未知的 json 类型则转化为字符串
-        param_with_values = {name: jsonT2pyT(schema.get("type"))(v)
+        param_with_values = {name: jsonTV2pyTV(v, schema.get("type"), schema.get("default"))
               for (name, schema), v in zip(f["parameters"]["properties"].items(), args)}
-        # param_with_values = {name: v for (name, _), v in zip(f["parameters"]["properties"].items(), args)}
         return param_with_values
 
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:

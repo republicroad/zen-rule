@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
     ],  # todo: 以后考虑从入参定义中提取入参类型和名字, 从 Docstring 中提取参数和返回值的注释.
     return_info=None     
 )
-def inout(*args, **kwargs) -> str:
+def inout(b: int, a: str|int, c, *args, **kwargs) -> str:
     """
     Docstring for inout
     自定义函数测试, 返回值返回入参, 用于调试.
@@ -25,6 +25,7 @@ def inout(*args, **kwargs) -> str:
         kwargs 包含 zen-rule 传入的节点入参和元信息.
         其中 _node_input 表示此节点的所有入参.
     """
+    # todo: 考虑支持复合类型 union type. 比如参数 a: str|int
     logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
     logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
     return kwargs.get("_node_input_", {})

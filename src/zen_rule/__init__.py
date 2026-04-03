@@ -13,8 +13,17 @@ from zen import ZenDecision, ZenDecisionContent
 from .udf import UDFManager, udf_manager, udf, FuncArg, FuncRet
 from .contrib import *
 # from zen import EvaluateResponse  # cannot import
-zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
+# zen_exprs_eval = lambda x, input: zen.evaluate_expression(x, input)
 logger = logging.getLogger(__name__)
+
+
+def zen_exprs_eval(expr, input):
+    try:
+        return zen.evaluate_expression(expr, input)
+    except Exception as e:
+        logger.error("Error occurred while evaluating zen expression: %s", e, exc_info=True)
+        return None
+
 
 class EvaluateResponse(TypedDict):
     performance: str
@@ -261,16 +270,16 @@ class ZenRule:
             
             func_name, *op_arg_expressions  = expr_ast
             logger.debug("node_input: %s  context: %s", node_input, context)
-            logger.debug("func_name: %s  literal args: %s", func_name, op_arg_expressions)
+            logger.debug("func: %s  literal args: %s", func_name, op_arg_expressions)
             inputfield = context.get("inputField")
             f = cls.udf_manager.udf_function_schema(func_name)  # 需要在这里设计一个函数执行异常时返回的值么.
             if f:
                 ## 变量求值
                 args = [zen_exprs_eval(f"{inputfield}.{i}" if inputfield else f"{i}", node_input) for i in op_arg_expressions]
                 ## 绑定参数和形参, 并转化参数值的类型
+                logger.debug("func: %s args evaluated: %s", func_name, args)
                 oprator_kwargs = cls.udf_manager.func_bind_params(func_name, args)
-                # logger.debug("ast_exec %s args: %s", func_name, args)
-                logger.debug("ast_exec %s kwargs: %s", func_name, oprator_kwargs)
+                logger.debug("func: %s kwargs: %s", func_name, oprator_kwargs)
                 kwargs = {
                     **oprator_kwargs,
                     **context,
