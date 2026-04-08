@@ -4,6 +4,7 @@ import inspect
 import asyncio
 from pprint import pprint
 from pathlib import Path
+import sys
 from zen_rule import ZenRule, udf, FuncArg, FuncRet
 
 from utils import httpsession
@@ -22,8 +23,8 @@ logger = logging.getLogger(__name__)
     return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
 )
 def foo(*args, **kwargs):
-    logger.info(f"{inspect.stack()[0][3]} args:{args}")
-    logger.info(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
+    logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
+    logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
     return "foo value"
 
 

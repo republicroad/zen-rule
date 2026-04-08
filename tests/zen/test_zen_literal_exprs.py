@@ -1,13 +1,12 @@
 import zen
 import pytest
-import warnings
-warnings.warn("This test is deprecated and will be removed in the future.", DeprecationWarning)
-## 未来再合并到 zen 表达式的测试用例中
-def test_zen_exprs():
+
+
+def test_zen_literal_exprs():
     """
-        @Deprecated: 此测试用例是想把 zen 表达式用 python 来解析.
-        但是 zen 表达式没有明确的语法格式定义. 而且未来变动比较大.
-        需要case by case去支持. 还不如直接在 zen-expression 的 rust 程序中去支持拓展.
+        zen 表达式的语法格式未提供类似于 EBNF 的正式定义. 目前只能通过测试用例来总结和归纳出一些基本的语法规则和特性.
+        下面是一些从测试用例中总结出的 zen 表达式的语法规则和特性.
+        尤其要注意那些捕获异常的测试用例, 那些都是 zen 表达式不支持的语法特性.
     """
     assert zen.evaluate_expression("{a:1}", {"a":3, "b":"fccdjny", "c": {'name': 'Alice', 'age': 30}})
     assert zen.evaluate_expression("{'a':1}", {"a":3, "b":"fccdjny", "c": {'name': 'Alice', 'age': 30}})

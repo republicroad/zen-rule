@@ -154,7 +154,6 @@ def function_return_schema(f):
 def function_schema(f):
     """
         todo: function_schema 增加关于返回值schema的字段定义.
-        todo: function_schema 按照 namespace 分组.
     """
     ### def bar(a: int, b:Annotated[str, "The city to get the weather for"]):
     ###     pass
@@ -168,7 +167,7 @@ def function_schema(f):
         # Retrieve function argument Annotated tips
         _para_annotation_doc = getattr(param.annotation, "__metadata__", "")
         para_annotation_doc = _para_annotation_doc[0] if _para_annotation_doc else ""
-        t = None if param.annotation==Parameter.empty else param.annotation
+        t = None if param.annotation in {Parameter.empty, Any} else param.annotation
         default_value = Ellipsis if param.default==Parameter.empty else param.default
         # comment from doc string or field annotation, field annotation first
         _param_func_doc = param_docs.get(n)
@@ -319,17 +318,6 @@ class UDFManager:
         else:
             raise ValueError(f"Function '{udf_name}' is not registered in UDFManager")
 
-    async def call_udf(self, udf_name: str, *args, **kwargs) -> Any:
-
-        if udf_name in self.functions:
-      
-            func = self.functions[udf_name]["func"]
-            if iscoroutinefunction(func):
-                return await func(*args, **kwargs)
-            else:
-                return func(*args, **kwargs)
-        else:
-            raise ValueError(f"Function '{udf_name}' is not registered in UDFManager")
 
 # Instantiate UDF Manager
 udf_manager = UDFManager()

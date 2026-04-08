@@ -13,6 +13,8 @@ import inspect
 from dataclasses import dataclass
 from pathlib import Path
 from pprint import pprint
+import sys
+from typing import Any
 import uuid
 import pytest
 import zen
@@ -84,7 +86,7 @@ graphjson = """
   ]
 }
 """
-file_path = Path(__file__).parent / 'data/standard.csv'
+file_path = Path(__file__).parent / 'standard.csv'
 
 
 @dataclass
@@ -124,18 +126,18 @@ def load_zen_expressions():
     ],
     return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
 )
-def foo(*args, **kwargs):
+def foo(expr_val:Any, *args, **kwargs):
     """
-        此测试传入一个参数, 将此参数当做返回值, 便于去做 assert.
+        expr_val 可能是各种类型, 所以这里定义为None, Any 需要去做适配
     """
-    logger.debug(f"{inspect.stack()[0][3]} args:{args}")
-    logger.debug(f"{inspect.stack()[0][3]} kwargs:{kwargs}")
-    result = {
-      k:v for k,v in kwargs.items() if k not in {'__meta__', '_node_input_', 'expr_id', 'func_id',
-      'inputField', 'node_id', 'outputPath', 'passThrough'}
-    }
-    print(result)
-    return result.popitem()[1]
+    logger.info("function: %s expr_val: %s", sys._getframe(1).f_code.co_name, expr_val)
+    logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
+    logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
+    # result = {
+    #   k:v for k,v in kwargs.items() if k not in {'__meta__', '_node_input_', 'expr_id', 'func_id',
+    #   'inputField', 'node_id', 'outputPath', 'passThrough'}
+    # }
+    return expr_val
 
 
 def loader(key):

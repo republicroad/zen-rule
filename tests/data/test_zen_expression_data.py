@@ -3,7 +3,7 @@ import csv
 import pytest
 from pathlib import Path 
 
-base_data_dir = Path(__file__).parent / "data"
+base_data_dir = Path(__file__).parent
 
 def read_csv(file_path):
     data = []
