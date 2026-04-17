@@ -1,3 +1,4 @@
+import re
 import time
 import logging
 import inspect
@@ -5,7 +6,7 @@ from itertools import groupby
 from pprint import pformat
 from typing import List, Dict, Any
 from inspect import signature, Parameter, iscoroutinefunction
-from pydantic import create_model, Field, TypeAdapter
+from pydantic import BaseModel, create_model, Field, TypeAdapter
 from docstring_parser import parse
 
 logger = logging.getLogger(__name__)
@@ -113,41 +114,74 @@ class FuncRet:
             "comments": self.comments,
         }
 
+def returns_description_parser(content:str):
+    """
+    函数注释的返回信息解析
+    """
+    content_lines = content.splitlines()
+    try:
+        if len(content_lines) > 0:
+            title = content_lines[0]
+            return_params = content_lines[1:]
+            pattern = r"\*\*(\w+?)\*\*(?:\s*\((\w+?)\))?(?::\s*([^\n。]+))?"
+            properties_list = []
+            for item in return_params:
+                match = re.search(pattern, item)
+                name = match.group(1) or ''
+                type_ = match.group(2) or ''
+                desc = match.group(3) or ''
+                if name:
+                    item_propertie =  {name:{"title":name.capitalize(),"type":type_,"description":desc}}
+                    properties_list.append(item_propertie)
+            return {"properties":properties_list,"title":title}
+        else:
+            return {}
+    except Exception as e:
+        return {"msg":e.args}
+
+
 def function_return_schema(f):
+    """
+    从函数得反射中获取到函数返回值得相关信息
+    先从文档中获取
+    再通过最后的反射来覆盖文档中的字段
+    """
+    return_schema = {
+        "type":"null",
+        "title":"",
+        "properties":{},
+    }
+    # 从文档中获取到注释内容
+    parsed_doc = parse(f.__doc__)
+    parsed_doc_return = parsed_doc.returns
+    if parsed_doc_return:
+        res = returns_description_parser(parsed_doc.returns.description)
+        return_schema.update({"title":res.get("title","")})
+        return_properties_in_docs = res.get("properties",[])
+        if return_properties_in_docs:
+            return_schema_properties = return_schema.get("properties",{})
+            for item in return_properties_in_docs:
+                return_schema_properties.update(**item)
+            return_schema["properties"] = return_schema_properties
     func_sig = inspect.signature(f)
     if func_sig.return_annotation == Parameter.empty:
-        # 如果返回值未定义那么返回空属性的的 return_model
-        return_schema = {
-            'properties': {},
-            'title': 'non return annotation',
-            'type': 'object',
-        }
-    elif func_sig.return_annotation in {str, int, float, bool}:
-        return_schema = {
-            'properties': {},
-            'title': '',
-            'type': pyT2jsonT(func_sig.return_annotation),
-        }
+        return_schema.update({'type': 'null'})
+    elif  func_sig.return_annotation in {str}:
+        return_schema.update({ "type": "string" })
+    elif func_sig.return_annotation in {int}:
+        return_schema.update({ "type": "integer" })
+    elif func_sig.return_annotation in {float}:
+        return_schema.update({ "type": "number" })
+    elif func_sig.return_annotation in {bool}:
+        return_schema.update({ "type": "boolean" })
     elif func_sig.return_annotation in {list, tuple}:
-        ## from list, tuple generate json schema
-        return_schema = {
-            'properties': {},
-            'title': '',
-            'type': pyT2jsonT(func_sig.return_annotation),
-        }
+        return_schema.update({"type": "array"})
     elif func_sig.return_annotation in {dict}:
-        ## from dict generate json schema
-        return_model = create_model(f.__name__ + "_return", **{
-            # field: (field_type, default_value)
-        })
-        return_schema = return_model.model_json_schema()
+        return_schema.update({"type": "object"})
+    elif issubclass(func_sig.return_annotation,BaseModel):
+        return_schema.update(func_sig.return_annotation.model_json_schema())
     else:
-        ## func_sig.return_annotation 是一个实例类型，可以转化为字典
-        ## 把基于实例的字典的键值对放入第二个参数, 生成函数返回值的json schema描述.
-        return_model = create_model(f.__name__ + "_return", **{
-            # field: (field_type, default_value)
-        })
-        return_schema = return_model.model_json_schema()
+        return_schema.update({'type': 'null'})
     return return_schema
 
 
@@ -186,7 +220,7 @@ def function_schema(f):
         'type': 'function',
         'description': func_description,
         'parameters': parameter_model.model_json_schema(),
-        # 'return': return_schema
+        'returns': return_schema
     }
     return schema
 
@@ -236,6 +270,7 @@ class UDFManager:
             "arglength": len(arguments),
             "arguments": [arg.to_dict() for arg in arguments],
             "return_values": return_values,
+            "returns": {},
             "comments": comments or func.__doc__,
             "namespace": namespace_split(func.__module__,namespace=namespace),
         }
