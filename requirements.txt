@@ -9,4 +9,5 @@ typing-inspection
 pydantic-core
 annotated-types
 pydantic>=2.12.5
-
+# 版本管理工具
+bump-my-version
