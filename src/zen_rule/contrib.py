@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 @udf(
+    # todo: 等 UDFManager.get_udf_info 旧的逻辑完全被移除以后，再移除此处的参数.
     comments="default in out functions, Keep parameters unchanged output for debug",
     namespace="default",
     args_info=[
@@ -31,12 +32,7 @@ def inout(b: int, a: str|int, c, *args, **kwargs) -> str:
     return kwargs.get("_node_input_", {})
 
 
-@udf(
-    comments="default in out functions, Keep parameters unchanged output for debug",
-    namespace="default",
-    args_info=[],  # todo: 以后考虑从入参定义中提取入参类型和名字, 从 Docstring 中提取参数和返回值的注释.
-    return_info=None     
-)
+@udf()
 def func_without_args(*args, **kwargs) -> str:
     """
     Docstring for func_without_args

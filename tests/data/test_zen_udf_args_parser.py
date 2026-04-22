@@ -117,15 +117,7 @@ def load_zen_expressions():
 
 # 默认情况下使用位置参数传参.
 # 如果有关键字参数, 那么同时也会使用关键字传参.
-@udf(
-    comments="test udf foo",
-    args_info=[
-        FuncArg(arg_name="a", arg_type="string", defaults="", comments="var a"),
-        FuncArg(arg_name="b", arg_type="string", defaults="", comments="var b"),
-        FuncArg(arg_name="c", arg_type="string", defaults="", comments="var c"),
-    ],
-    return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
-)
+@udf()
 def foo(expr_val:Any, *args, **kwargs):
     """
         expr_val 可能是各种类型, 所以这里定义为None, Any 需要去做适配

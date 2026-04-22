@@ -1,6 +1,124 @@
 
 # zen-rule
 
+## 自定义函数spec
+
+描述自定义函数的 json schema 规范:
+
+1. 在 json schema 中使用 title 当作名称.一般来说, title 字段和name字段保持一致，title字段是json schema 的标准定义, name 是 openai 中的function calling 定义, 定义name字段是为了让自定义函数调用可以兼容openai, 这样我们的自定义函数可以注册为兼容 openai 大模型(基本上大模型都兼容openai接口)的工具函数.
+   不管任何层级，建议我们都使用 title 字段，那么name字段用来兼容openai.  
+2. 顶层tools字段中就是自定义算子的 schema 定义，算子中的 parameters 字段是标准的 json schema 定义.
+3. parameters.properties 中包含函数的参数，键的顺序就是算子中入参的顺序.
+4. parameters.required 表示哪些参数是必传的.
+5. 旧的自定义函数定义会在函数定义中有 arglength 表示函数参数个数，现在需要遍历 parameters.properties 中的选项得到参数个数，并且其迭代顺序代表参数顺序。
+6. 自定义函数的返回值的 json schema 中增加与 parameters 统一层级的 returns 字段表示返回值定义. returns.content 表示函数返回值的内容定义, returns.content.schema 则是具体的字段及其类型定义. 简化前端编辑表达式时做输入提示和补全.
+
+```json
+[  
+    {
+        "type": "namespace", /*顶层type namespace 表示自定义节点定义*/
+        "title": "http", /* title 是 json schema 的规范*/
+        "name": "http", /* 自定义节点的名字 */
+        "description": "",
+        "tools": [ /* tools 表示自定义节点中的自定义算子(函数)列表*/
+            {
+                "name": "http_call",
+                "title": "http_call",
+                "type": "function",
+                "description": "http 请求调用\n第一个参数是 url, 第二个参数是请求方法(\"get\"/\"post\"),\n第三个参数是请求体(zen context/object)",
+                "parameters": {
+                    "properties": {
+                        "url": {
+                            "description": "目标 url",
+                            "title": "Url",
+                            "type": "string"
+                        },
+                        "method": {
+                            "default": "get",
+                            "description": "请求方法(\"get\" 或者 \"post\")",
+                            "title": "Method",
+                            "type": "string"
+                        },
+                        "payload": {
+                            "additionalProperties": true,
+                            "default": {},
+                            "description": "请求的参数(zen context/object)",
+                            "title": "Payload",
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ],
+                    "title": "http_call",
+                    "type": "object"
+                },
+                "returns": {
+                    "description": "http call use define function return value",
+                    "content": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "description": "The user ID"
+                                },
+                                "username": {
+                                    "type": "string",
+                                    "description": "The user name"
+                                }
+                            }
+                        }
+                    }
+                }，
+                "namespace": "http",
+                "kind": "http"
+            },
+            {
+                "name": "http_call_with_headers",
+                "title": "http_call_with_headers",
+                "type": "function",
+                "description": "http 请求调用\n第一个参数是 url, 第二个参数是请求方法(\"get\"/\"post\"),\n第三个参数是请求体(zen context/object),\n第四个参数是请求头headers(zen context/object).",
+                "parameters": {
+                    "properties": {
+                        "url": {
+                            "default": "",
+                            "description": "目标 url",
+                            "title": "Url",
+                            "type": "string"
+                        },
+                        "method": {
+                            "default": "",
+                            "description": "请求方法(\"get\" 或者 \"post\")",
+                            "title": "Method",
+                            "type": "string"
+                        },
+                        "payload": {
+                            "additionalProperties": true,
+                            "default": {},
+                            "description": "请求的参数(zen context/object)",
+                            "title": "Payload",
+                            "type": "object"
+                        },
+                        "headers": {
+                            "additionalProperties": true,
+                            "default": {},
+                            "description": "请求头headers(zen context/object)",
+                            "title": "Headers",
+                            "type": "object"
+                        }
+                    },
+                    "title": "http_call_with_headers",
+                    "type": "object"
+                },
+                "namespace": "http",
+                "kind": "http"
+            }
+        ]
+    }
+]
+```
+
 
 ## 自定义算子规范v3
 
