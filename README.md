@@ -11,7 +11,7 @@ zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
 - [x] 设计自定义函数的 json schema.
 - [x] 自定义函数 json schema 支持 namespace 分组.
 - [x] 从python函数定义提取入参及其类型和说明.
-- [ ] 从python函数定义提取返回值及其类型和说明.
+- [x] 从python函数定义提取返回值及其类型和说明.
 - [x] 增加内置的自定义函数.
    inout  调试节点输入和输出.
 
