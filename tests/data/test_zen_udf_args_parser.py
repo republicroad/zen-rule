@@ -18,7 +18,7 @@ from typing import Any
 import uuid
 import pytest
 import zen
-from zen_rule import ZenRule, udf, FuncArg, FuncRet
+from zen_rule import ZenRule, udf
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -118,9 +118,16 @@ def load_zen_expressions():
 # 默认情况下使用位置参数传参.
 # 如果有关键字参数, 那么同时也会使用关键字传参.
 @udf()
-def foo(expr_val:Any, *args, **kwargs):
+def foo(expr_val:Any, *args, **kwargs) -> str:
     """
-        expr_val 可能是各种类型, 所以这里定义为None, Any 需要去做适配
+    expr_val 可能是各种类型, 所以这里定义为None, Any 需要去做适配
+  
+    :param expr_val: 参数 a
+    :type expr_val: Any
+    :param args: Description
+    :param kwargs: zen-rule 传入的节点入参和元信息, _node_input
+    :returns: foo 函数返回
+    :rtype: str  
     """
     logger.info("function: %s expr_val: %s", sys._getframe(1).f_code.co_name, expr_val)
     logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)

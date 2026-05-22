@@ -6,3 +6,5 @@ pytest-cov==6.0.0
 pytest-html==4.1.1
 ipdb==0.13.13
 pytest-mock==3.14.0
+# 版本管理工具
+bump-my-version

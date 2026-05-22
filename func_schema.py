@@ -6,22 +6,22 @@ import inspect
 import asyncio
 from pprint import pprint
 from pathlib import Path
-from zen_rule import ZenRule, udf, FuncArg, FuncRet
+from zen_rule import ZenRule, udf
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-@udf(
-    comments="test udf foo",
-    args_info=[
-        FuncArg(arg_name="a", arg_type="string", defaults="", comments="var a"),
-        FuncArg(arg_name="b", arg_type="string", defaults="", comments="var b"),
-        FuncArg(arg_name="c", arg_type="string", defaults="", comments="var c"),
-    ],
-    return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
-)
-def foo(*args, **kwargs):
+@udf()
+def foo(*args, **kwargs) -> str:
+    """
+    Docstring for UDF: foo
+
+    :param args: Description
+    :param kwargs: zen-rule 传入的节点入参和元信息, _node_input
+    :returns: foo 函数返回
+    :rtype: str 
+    """
     logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
     logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
     return "foo value"
@@ -37,16 +37,19 @@ def bar(c: int, b:Annotated[str, "Annotated tips for arg b"],
     2
 
     3
-    
-    :param a: arg a
-    :type a: int
-    :param b: arg b
+
     :param c: arg c
     :type c: int
+    :param b: arg b
+    :type b: str
+    :param a: arg a
+    :type a: int
+    :param z: arg z
+    :type z: int
     :param args: param args
-    :param d: Description
-    :type d: int
     :param kwargs: param kwargs
+    :returns: bar 函数返回
+    :rtype: str 
     """
     pass
 

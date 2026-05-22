@@ -68,52 +68,6 @@ def jsonTV2pyTV(v: Any, json_type: Any, default: Any=None):
     return value
 
 
-def namespace_split(target,namespace=None) -> str:
-    if namespace:
-        return str(namespace)
-    try:
-        name_list = str(target).split(".")
-        new_name_list = []
-        for item in name_list:
-            if "functions" == item:
-                new_name_list = []
-            else:
-                new_name_list.append(item)
-        return ".".join(new_name_list)
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        return ""
-
-
-# Define classes for managing function arguments and return values
-class FuncArg:
-    def __init__(self, arg_name: str, arg_type: str, defaults: Any, comments: str):
-        self.arg_name = arg_name
-        self.arg_type = arg_type
-        self.defaults = defaults
-        self.comments = comments
-
-    def to_dict(self):
-        return {
-            "arg_name": self.arg_name,
-            "arg_type": self.arg_type,
-            "defaults": self.defaults,
-            "comments": self.comments,
-        }
-
-class FuncRet:
-    def __init__(self, field_type: str, examples: Any, comments: str):
-        self.field_type = field_type
-        self.examples = examples
-        self.comments = comments
-
-    def to_dict(self):
-        return {
-            "field_type": self.field_type,
-            "examples": self.examples,
-            "comments": self.comments,
-        }
-
 def returns_description_parser(content:str):
     """
     函数注释的返回信息解析
@@ -187,7 +141,7 @@ def function_return_schema(f):
 
 def function_schema(f):
     """
-        todo: function_schema 增加关于返回值schema的字段定义.
+        将 python 函数的签名(名字, 入参及其类型, 返回值及其类型) 转化为 json schema.
     """
     ### def bar(a: int, b:Annotated[str, "The city to get the weather for"]):
     ###     pass
@@ -227,86 +181,26 @@ def function_schema(f):
 
 # UDF Manager class to manage the registered UDFs
 class UDFManager:
-    # 之后再考虑是否支持 zen expression 的混用了.
     def __init__(self):
         self.functions = {}
-        self.funcs = {}  # function schema dict
-        self.param_annotation = {
-            str: "string",
-            dict: "object",  # json
-            list: "array",
-            tuple: "array",
-            int: "number",
-            float: "number",
-        }
-        self.default_type = "Any"
 
-    def register_function(self, func, comments:str =None, args_info: FuncArg =None, return_info: FuncRet =None, namespace:str = None):
-        sig = signature(func)
-        arguments = []
-
-        # Use provided args_info or derive from function signature
-        if args_info:
-            for info in args_info:
-                arguments.append(info)
-        else:
-            # logger.debug(f"sig.parameters: {sig.parameters}")
-            # logger.debug(f"sig.parameters items(): {pformat(sig.parameters.items())}")
-            for name, param in sig.parameters.items():
-                arg_type = self.param_annotation.get(param.annotation, self.default_type)
-                defaults = '' if param.default == Parameter.empty else param.default
-                comments = f'{name}:{arg_type}'
-                arguments.append(FuncArg(name, arg_type, defaults, comments))
-
-            # extra_arguments = [(arg.arg_name, arg.arg_type) for arg in arguments if arg.arg_name not in {"args", "kwargs"}]
-            # if extra_arguments:
-            #     raise Exception("udf function only allow to contains *args, **kwargs, please use @udf args_info to describe arg names")            
-        # logger.debug(f"return_info:{return_info}")
-        return_values = return_info.to_dict() if return_info else {}
-        # logger.debug(f"return_values:{return_values}")
+    def register_function(self, func, namespace:str = None):
+        func_schema = function_schema(func)
+        func_schema['namespace'] = namespace or func.__module__.split(".")[-1]
+        func_schema['kind'] = func_schema['namespace'].split('.')[-1]
         self.functions[func.__name__] = {
             "func": func,
             "name": func.__name__,
-            "arglength": len(arguments),
-            "arguments": [arg.to_dict() for arg in arguments],
-            "return_values": return_values,
-            "returns": {},
-            "comments": comments or func.__doc__,
-            "namespace": namespace_split(func.__module__,namespace=namespace),
+            "schema": func_schema
         }
-        ### todo: 在 1.0 版本之前移除此兼容逻辑.
-        ## 目前函数参数的定义都是 args 和 kwargs.
-        ## 实际参数定义在udf装饰器中的args_info列表中的 FuncArg 实例上.
-        ## 需要将这部分的参数定义也包含在 function json schema 的 parameters 参数中.
-        func_schema = function_schema(func)
-        func_schema['namespace'] = namespace_split(func.__module__, namespace=namespace)
-        func_schema['kind'] = func_schema['namespace'].split('.')[-1]
-        self.funcs[func.__name__] = func_schema
-
-    def get_udf_info(self) -> List[Dict[str, Any]]:
-        return [
-            {
-                "name": data["name"],
-                "arglength": data["arglength"],
-                "arguments": data["arguments"],
-                "return_values": data["return_values"],
-                "comments": data["comments"],
-                "namespace": data["namespace"],
-                "kind": data["namespace"].split(".")[-1]
-            }
-            for data in self.functions.values()
-        ]
-
-    def udf_info(self, name) -> List[Dict[str, Any]]:
-        return self.functions.get(name)
 
     def udf_function_schema(self, name: str) -> Dict[str, Any]:
-        return self.funcs.get(name)
+        return self.functions.get(name).get("schema")
 
     def udf_function_schema_tools(self) -> Dict[str, Any]:
         d = []
         ## groupby list must sorted
-        func_tools = [data for data in self.funcs.values()]
+        func_tools = [data.get("schema") for data in self.functions.values()]
         group_key_func = lambda x: x.get("namespace", "default")
         for key, group in groupby(sorted(func_tools, key=group_key_func), key=group_key_func):
             # simulate openai function calling schema
@@ -358,8 +252,8 @@ class UDFManager:
 udf_manager = UDFManager()
 
 # Decorator to register UDFs with optional custom metadata
-def udf(comments=None, args_info=None, return_info=None,namespace=None):
+def udf(namespace=None):
     def decorator(func):
-        udf_manager.register_function(func, comments, args_info, return_info,namespace)
+        udf_manager.register_function(func, namespace)
         return func
     return decorator

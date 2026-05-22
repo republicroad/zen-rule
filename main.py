@@ -5,7 +5,7 @@ import asyncio
 from pprint import pprint
 from pathlib import Path
 import sys
-from zen_rule import ZenRule, udf, FuncArg, FuncRet
+from zen_rule import ZenRule, udf
 
 from utils import httpsession
 
@@ -13,16 +13,22 @@ logging.basicConfig(level=logging.NOTSET)
 logger = logging.getLogger(__name__)
 
 
-@udf(
-    comments="test udf foo",
-    args_info=[
-        FuncArg(arg_name="a", arg_type="string", defaults="", comments="var a"),
-        FuncArg(arg_name="b", arg_type="string", defaults="", comments="var b"),
-        FuncArg(arg_name="c", arg_type="string", defaults="", comments="var c"),
-    ],
-    return_info=FuncRet(field_type="string", examples="fccdjny", comments="返回值示例, 字段解释")     
-)
-def foo(*args, **kwargs):
+@udf()
+def foo(a:str, b:str, c:str, *args, **kwargs) -> str:
+    """
+    Docstring for UDF: foo
+
+    :param a: 参数 a
+    :type a: str
+    :param b: 参数 b
+    :type b: str
+    :param c: 参数 c
+    :type c: str
+    :param args: Description
+    :param kwargs: zen-rule 传入的节点入参和元信息, _node_input
+    :returns: foo 函数返回
+    :rtype: str 
+    """
     logger.info("function: %s args: %s", sys._getframe(1).f_code.co_name, args)
     logger.info("function: %s kwargs: %s", sys._getframe(1).f_code.co_name, kwargs)
     return "foo value"
