@@ -2,24 +2,24 @@
 # zen-rule
 
 zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
-  
+
 1. 提供多个 decision 的缓存.  
 2. 提供自定义节点中多个函数调用表达式的定义, 解析和调用规范.  
 
 ## roadmap
 
-- [x] 设计自定义函数的 json schema.
-- [x] 自定义函数 json schema 支持 namespace 分组.
-- [x] 从python函数定义提取入参及其类型和说明.
-- [x] 从python函数定义提取返回值及其类型和说明.
-- [x] 增加内置的自定义函数.
+- [x]设计自定义函数的 json schema.
+- [x]自定义函数 json schema 支持 namespace 分组.
+- [x]从python函数定义提取入参及其类型和说明.
+- [x]从python函数定义提取返回值及其类型和说明.
+- [x]增加内置的自定义函数.
    inout  调试节点输入和输出.
 
-- [ ] 增加命令行程序
+- [ ]增加命令行程序
    运行规则图       接受一个json输入和graph.json文件
    解析规则图       接受一个graph.json文件
    测试 zen 表达式  接受一个json输入和 zen 表达式
-- [ ] 将 pytest.ini 配置迁移到 pyproject.toml 文件中. 配置集中管理.
+- [ ]将 pytest.ini 配置迁移到 pyproject.toml 文件中. 配置集中管理.
 
 
 ## example
@@ -27,6 +27,12 @@ zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
 推荐线上使用 decision 缓存模式, 这样规则只需要加载，解析一次后重复使用，提高系统性能.  
 每次先判断zenRule实例中是否有规则的缓存，如果没有则去加载规则图; 如果有就直接通过规则键去调用规则对入参进行处理, 得到最后规则的输出.
 
+查看包含自定义节点和自定义函数的示例程序:  
+```bash
+python main.py
+```
+
+代码如下:
 ```python
 from pathlib import Path
 from zen_rule import ZenRule, udf
@@ -38,7 +44,7 @@ async def test_zenrule():
     """
     zr = ZenRule({})
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v3.json"
+    filename = basedir / "graph" / "custom.json"
     key = filename
 
     if not zr.get_decision_cache(key):
@@ -48,9 +54,8 @@ async def test_zenrule():
             content =  f.read()
         zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
     result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-    print("zen rule custom_v3 result:", result)
+    print("zen rule custom result:", result)
 ```
-
 
 如果提供 loader 函数, 就是如下调用示例.  
 ```python
@@ -69,112 +74,18 @@ def loader(key):
 async def test_zenrule_with_loader():
     zr = ZenRule({"loader": loader})
 
-    result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
-    print("zen rule custom_v3 result:", result)
+    result = await zr.async_evaluate("custom.json", {"input": 7, "myvar": 15})
+    print("zen rule custom result:", result)
 
-    result = await zr.async_evaluate("custom_v3.json", {"input": 7, "myvar": 15})
-    print("zen rule custom_v3 result2:", result)
+    result = await zr.async_evaluate("custom.json", {"input": 7, "myvar": 15})
+    print("zen rule custom result2:", result)
 ```
 
 示例程序请参考 main.py, 运行 python main.py 即可运行测试示例.  
 
 包含自定义函数示例的规则:  
-[custom_v3.json](graph/custom_v3.json)  
+[custom.json](graph/custom.json)  
 
-
-
-## 自定义算子规范v3
-
-在决策引擎中, 自定义算子主要承担外部数据查询, 状态交互, 以及一些自定义功能拓展. 
-考虑到界面中会对自定义算子进行分类, 这时候在某个自定义类别的节点中只能访问这个类别的函数,
-这样有利于降低最后用户的使用难度. 
-
-
-![alt text](docs/custom_nodes.png)  
-
-
-如果支持不同自定义算子的嵌套, 那么这些节点分类就形同虚设.
-考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
-参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
-
-> inout;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
-
-表示 inout 算子传入了五个参数:
-1. zen 表达式变量 myvar
-2. zen 表达式函数 max([5, 8, 2, 11, 7])
-3. zen 表达式 rand(100)
-4. zen 表达式 'fccd;;jny'
-5. zen 表达式 3+4
-
-
-解析后得到如下结构, 解释执行即可:
-
-> ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]
-
-解析逻辑如下:
-
-```python
-def parse_oprator_expr_v3(expr):
-    # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
-    # inout ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
-    # inout;;myvar;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
-    # expr.split(";;")
-    pattern = r""";;(?=(?:[^"'`]*["'`][^"'`]*["'`])*[^"'`]*$)"""
-    # To split the string by these semicolon:
-    _parts = re.split(pattern, expr)
-    parts = [i.strip() for i in _parts]  # 去掉表达式前后的空格
-    return parts
-```
-
-
-### 解析后格式
-
-```json
-{
-  "id": "ba056342-f76f-4d00-a739-4f906fbe0401",
-  "metadata": {
-    "version": "1.0.0",
-    "author": "ryefccd@gmail.com",
-    "description": "",
-    "tags": [
-      "login",
-      "risk control"
-    ]
-  },
-    {
-        "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
-        "type": "customNode",
-        "position": {
-        "x": 470,
-        "y": 240
-        },
-        "name": "customNode1",
-        "content": {
-        "kind": "sum",
-        "config": {
-            "prop1": "{{ a + 10 }}",
-            "passThrough": true,
-            "inputField": null,
-            "outputPath": null,
-            "expressions": [/*expressions 是约定的前端格式*/
-            {
-                "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
-                "key": "result",
-                "value": "inout;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4"
-            }
-            ],
-            "expr_asts": [/*expr_asts 是后端解析动态产生的*/
-            {
-                "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
-                "key": "result",
-                "value": ["inout", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "\\'fccd;;jny\\'", "3+4"]
-            }
-            ]
-        }
-        }
-    }
-}
-```
 
 
 ## develop

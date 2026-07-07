@@ -120,38 +120,33 @@
 ```
 
 
-## 自定义算子规范v3
+## 自定义算子规范
 
 在决策引擎中, 自定义算子主要承担外部数据查询, 状态交互, 以及一些自定义功能拓展. 
 考虑到界面中会对自定义算子进行分类, 这时候在某个自定义类别的节点中只能访问这个类别的函数,
 这样有利于降低最后用户的使用难度. 
 
-
 ![alt text](custom_nodes.png)  
 
+自定义节点中的算子 oprater 调用支持两种格式:
 
-如果支持不同自定义算子的嵌套, 那么这些节点分类就形同虚设.
-考虑到自定义算子再未来的功能以及演化, 暂时决定自定义算子不支持嵌套调用和解析.
-参考 zen-engine 的表达式测试用例. 为了简化参数的解析, 决定选用 `;;` 作为函数的分隔符号.
-
+1. 字符串格式, 以 ;; 作为分隔符, 表示算子及其参数的分隔符, 比如:
 > foo;;myvar ;;max([5, 8, 2, 11, 7]);;rand(100);; 'fccd;;jny' ;;3+4
 
-表示 foo 算子传入了五个参数:
-1. zen 表达式变量 myvar
-2. zen 表达式函数 max([5, 8, 2, 11, 7])
-3. zen 表达式 rand(100)
-4. zen 表达式 'fccd;;jny'
-5. zen 表达式 3+4
-
-
-解析后得到如下结构, 解释执行即可:
-
+2. json数组格式, 直接使用 json 数组表示算子及其参数, 比如:
 > ["foo", "myvar", "max([5, 8, 2, 11, 7])", "rand(100)", "'fccd;;jny'", "3+4"]
 
-解析逻辑如下:
+表示 foo 算子传入了五个参数:
+- zen 表达式变量 myvar
+- zen 表达式函数 max([5, 8, 2, 11, 7])
+- zen 表达式 rand(100)
+- zen 表达式 'fccd;;jny'
+- zen 表达式 3+4
+
+格式1可以通过如下正则表达式来得到表达式2, 代码如下所示:
 
 ```python
-def parse_oprator_expr_v3(expr):
+def parse_oprator_expr(expr):
     # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
     # foo;;myvar ;;max([5,8,2,11, 7]);;rand(100)+120;;3+4;; 'singel;;quote' ;;"double;;quote" ;;`backquote;; ${bar}`
     # expr.split(";;")
@@ -261,170 +256,4 @@ def parse_oprator_expr_v3(expr):
     }
   ]
 }
-
-```
-
-
-## 自定义算子规范v2
-
-包含自定义函数示例的规则:  
-[custom_v2.json](graph/custom_v2.json)  
-
-```json
-{
-  "contentType": "application/vnd.gorules.decision",
-  "nodes": [
-    {
-      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
-      "type": "inputNode",
-      "position": {
-        "x": 180,
-        "y": 240
-      },
-      "name": "Request"
-    },
-    {
-      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
-      "type": "customNode",
-      "position": {
-        "x": 470,
-        "y": 240
-      },
-      "name": "customNode1",
-      "content": {
-        "kind": "sum",
-        "config": {
-          "version": "v2",
-          "meta": {
-            "user": "wanghao@geetest.com",
-            "proj": "proj_id"
-          },
-          "prop1": "{{ a + 10 }}",
-          "passThrough": true,
-          "inputField": null,
-          "outputPath": null,
-          "expressions": [
-            {
-              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
-              "key": "result",
-              "value": "foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
-      "type": "outputNode",
-      "position": {
-        "x": 780,
-        "y": 240
-      },
-      "name": "Response"
-    }
-  ],
-  "edges": [
-    {
-      "id": "05740fa7-3755-4756-b85e-bc1af2f6773b",
-      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
-      "type": "edge",
-      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
-    },
-    {
-      "id": "5d89c1d6-e894-4e8a-bd13-22368c2a6bc7",
-      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
-      "type": "edge",
-      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
-    }
-  ]
-}
-
-```
-
-### custom node spec v2
-
-将函数调用解析为抽象语法树后解释执行:
-
-> foo(myvar,bar(zoo('fccdjny',6, 3.14),'a'), bas())
-
-解析后得到如下语法树, 解释执行即可:
-
-```python
-[
-    {
-        "name": "zoo",
-        "args": [["'fccdjny'", "string"], [6, "int"], [3.14, "float"]],
-        "ns": "",
-        "id": "566a36f923b34cbd9c159272adc988ae",
-    },
-    {
-        "name": "bar",
-        "args": [
-            [
-                {
-                    "name": "zoo",
-                    "args": [
-                        ["'fccdjny'", "string"],
-                        [6, "int"],
-                        [3.14, "float"],
-                    ],
-                    "ns": "",
-                    "id": "566a36f923b34cbd9c159272adc988ae",
-                },
-                "func_value",
-            ],
-            ["'a'", "string"],
-        ],
-        "ns": "",
-        "id": "5d0b81e086d748d4902a35fd85bad974",
-    },
-    {
-        "name": "bas",
-        "args": [],
-        "ns": "",
-        "id": "7f8448aad2594b479f6df2e2241707c7",
-    },
-    {
-        "name": "foo",
-        "args": [
-            ["myvar", "var"],
-            [
-                {
-                    "name": "bar",
-                    "args": [
-                        [
-                            {
-                                "name": "zoo",
-                                "args": [
-                                    ["'fccdjny'", "string"],
-                                    [6, "int"],
-                                    [3.14, "float"],
-                                ],
-                                "ns": "",
-                                "id": "566a36f923b34cbd9c159272adc988ae",
-                            },
-                            "func_value",
-                        ],
-                        ["'a'", "string"],
-                    ],
-                    "ns": "",
-                    "id": "5d0b81e086d748d4902a35fd85bad974",
-                },
-                "func_value",
-            ],
-            [
-                {
-                    "name": "bas",
-                    "args": [],
-                    "ns": "",
-                    "id": "7f8448aad2594b479f6df2e2241707c7",
-                },
-                "func_value",
-            ],
-        ],
-        "ns": "",
-        "id": "0c509d4654ef443eb621d791d3ffcaa1",
-    },
-]
-
 ```

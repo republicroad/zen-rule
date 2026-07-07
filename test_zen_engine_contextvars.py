@@ -78,7 +78,7 @@ async def init_zen_engine():
     options = {"customHandler": custom_async_handler}
     engine = zen.ZenEngine(options) 
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v0.json"
+    filename = basedir / "graph" / "custom.json"
     content = read_json_graph(filename=filename)
     httpsession.set("fccdjny2")  # zen.ZenEngine 初始后设置 contextvars, custom_async_handler 中无法获取.
     zendecision = engine.create_decision(content)

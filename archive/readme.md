@@ -32,7 +32,7 @@
 解析逻辑如下:
 
 ```python
-def parse_oprator_expr_v3(expr):
+def parse_oprator_expr(expr):
     # 不能简单使用字符串分割, 因为字符串中可能会有分隔符的模式出现, 比如:
     # inout ;; myvar ;; bar(zoo('fccd;;jny',6, 3.14),'a');; a+string(xxx)
     # inout;;myvar;;max([5, 8, 2, 11, 7]);;$nodes;; 'fccd;;jny' ;;3+4

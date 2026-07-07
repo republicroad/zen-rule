@@ -34,10 +34,10 @@ def foo(a:str, b:str, c:str, *args, **kwargs) -> str:
     return "foo value"
 
 
-async def test_zenrule_v3_foo():
+async def test_zenrule_foo():
     zr = ZenRule({})
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v3_fullnode.json"
+    filename = basedir / "graph" / "custom_fullnode.json"
     key = filename
     if not zr.get_decision_cache(key):
         with open(filename, "r", encoding="utf8") as f:
@@ -46,12 +46,12 @@ async def test_zenrule_v3_foo():
         zr.create_decision_with_cache_key(key, content)
     for i in range(1):
         result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-        print("zen rule custom_v3 result:", result)
-        assert result.get("result", {}).get("result") == "foo value", "custom_v3 规则执行失败"
+        print("zen rule custom result:", result)
+        assert result.get("result", {}).get("result") == "foo value", "custom 规则执行失败"
         print(f"------------------{i}------------------------")
 
 
-async def test_zenrule_v3():
+async def test_zenrule():
     """
         推荐线上生产环境使用此模式进行规则执行, 可以缓存决策对象, 提高性能.
     """
@@ -59,7 +59,7 @@ async def test_zenrule_v3():
     zr = ZenRule({})
     # httpsession.set(object())
     basedir = Path(__file__).parent
-    filename = basedir / "graph" / "custom_v3.json"
+    filename = basedir / "graph" / "custom.json"  # custom2.json
     key = filename
 
     if not zr.get_decision_cache(key):
@@ -70,11 +70,11 @@ async def test_zenrule_v3():
         zr.create_decision_with_cache_key(key, content)  # 将规则图缓存在键下, 这样可以只读取规则一次，解析一次，然后复用决策对象 decision
     for i in range(1):
         result = await zr.async_evaluate(key, {"input": 7, "myvar": 15})
-        print("zen rule custom_v3 result:", result)
+        print("zen rule custom result:", result)
         print(f"------------------{i}------------------------")
 
 
 if __name__ == "__main__":
-    # test_zenrule_v3
-    asyncio.run(test_zenrule_v3())
-    # asyncio.run(test_zenrule_v3_foo())
+    # test_zenrule
+    asyncio.run(test_zenrule())
+    # asyncio.run(test_zenrule_foo())

@@ -231,9 +231,7 @@ class UDFManager:
 
     async def __call__(self, udf_name: str, *args, **kwargs) -> Any:
         """
-            v2 spec
-            执行器要函数解析放到一起, 在function_call_parse中实现解析器和执行器,
-            然后执行器调用真正的udf函数管理和执行器.
+            调用已经注册的自定义函数
         """
         if udf_name in self.functions:
             t1 = time.time()

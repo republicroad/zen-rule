@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "author": "wanghao@geetest.com",
+    "description": "login risk check",
+    "tags": ["login", "risk control"]
+  },
+  "id": "710c5ba6752bdb626cda40a65079d382",
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "id": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "inputNode",
+      "position": {
+        "x": 180,
+        "y": 240
+      },
+      "name": "Request"
+    },
+    {
+      "id": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "customNode",
+      "position": {
+        "x": 470,
+        "y": 240
+      },
+      "name": "customNode1",
+      "content": {
+        "kind": "sum",
+        "config": {
+          "__meta__": {
+            "customHandlerVersion": "v3",
+            "user": "wanghao@geetest.com",
+            "namespace": "710c5ba6752bdb626cda40a65079d382"
+          },
+          "prop1": "{{ a + 10 }}",
+          "passThrough": true,
+          "inputField": null,
+          "outputPath": null,
+          "expressions": [
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "debug_args",
+              "value": "inout;;myvar ;;max([5, 8, 2, 11, 7]);;$nodes;; 'fccd;;jny' ;;3+4"
+            }
+          ],
+          "expr_asts": [
+            {
+              "id": "52d41e3d-067d-4930-89bd-832b038cd08f",
+              "key": "debug_args",
+              "value": ["inout", "myvar", "max([5, 8, 2, 11, 7])", "$nodes", "'fccd;;jny'", "3+4"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e",
+      "type": "outputNode",
+      "position": {
+        "x": 780,
+        "y": 240
+      },
+      "name": "Response"
+    }
+  ],
+  "edges": [
+    {
+      "id": "05740fa7-3755-4756-b85e-bc1af2f6773b",
+      "sourceId": "115975ef-2f43-4e22-b553-0da6f4cc7f68",
+      "type": "edge",
+      "targetId": "138b3b11-ff46-450f-9704-3f3c712067b2"
+    },
+    {
+      "id": "5d89c1d6-e894-4e8a-bd13-22368c2a6bc7",
+      "sourceId": "138b3b11-ff46-450f-9704-3f3c712067b2",
+      "type": "edge",
+      "targetId": "db8797b1-bcc1-4fbf-a5d8-e7d43a181d5e"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import logging
 import inspect
 import sys
-from .udf import udf
+from .register import udf
 logger = logging.getLogger(__name__)
 
 
