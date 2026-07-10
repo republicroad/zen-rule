@@ -77,4 +77,4 @@ async def test_zenrule():
 if __name__ == "__main__":
     # test_zenrule
     asyncio.run(test_zenrule())
-    # asyncio.run(test_zenrule_foo())
+    asyncio.run(test_zenrule_foo())

@@ -1,0 +1,18 @@
+{
+  "name": "zen-rule",
+  "version": "0.30.0",
+  "description": "zen-engine enrichment for custom node spec and cache ZenDecision objects for performance",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "main": "bun run main.ts"
+  },
+  "dependencies": {
+    "@gorules/zen-engine": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "bun-types": "latest"
+  }
+}
