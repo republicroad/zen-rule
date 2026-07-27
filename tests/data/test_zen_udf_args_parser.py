@@ -48,8 +48,8 @@ graphjson = """
         "config": {
           "version": "v3",
           "meta": {
-            "user": "wanghao@geetest.com",
-            "proj": "proj_id"
+            "user": "847960106@qq.com",
+            "ns": ""
           },
           "prop1": "{{ a + 10 }}",
           "passThrough": true,

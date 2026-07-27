@@ -32,7 +32,7 @@ id 表示规则的唯一编号. 可以用于规则区分和命名空间划分.
 {
   "metadata": {
     "version": "1.0.0",
-    "author": "wanghao@geetest.com",
+    "author": "847960106@qq.com",
     "description": "login risk check",
     "tags": ["login", "risk control"]
   }
