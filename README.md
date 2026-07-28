@@ -6,6 +6,20 @@ zen-rule 是 [zen-engine](https://pypi.org/project/zen-engine/) 加强版本:
 1. 提供多个 decision 的缓存.  
 2. 提供自定义节点中多个函数调用表达式的定义, 解析和调用规范.  
 
+## 文档
+
+| 文档 | 内容 |
+|------|------|
+| [docs/architecture.md](docs/architecture.md) | 项目整体架构、模块说明、执行流程 |
+| [docs/udf_spec.md](docs/udf_spec.md) | 自定义函数 JSON Schema 规范（兼容 OpenAI function calling） |
+| [docs/jdm.md](docs/jdm.md) | JSON Decision Model 规范（规则图 JSON 结构） |
+| [docs/jdm-editor.md](docs/jdm-editor.md) | 规则图编辑器节点规范 |
+| [docs/zen-expression.md](docs/zen-expression.md) | zen 表达式语言说明 |
+| [docs/zen-engine-node-types.md](docs/zen-engine-node-types.md) | zen-engine 节点类型 |
+| [archive/readme.md](archive/readme.md) | 自定义节点规范 v0~v3 演进史 |
+| [tests/readme.md](tests/readme.md) | pytest / coverage / benchmark 使用指南 |
+| [packages/zen-rule/PLAN.md](packages/zen-rule/PLAN.md) | TypeScript 重写执行计划 |
+
 ## roadmap
 
 - [x]设计自定义函数的 json schema.
@@ -84,7 +98,7 @@ async def test_zenrule_with_loader():
 示例程序请参考 main.py, 运行 python main.py 即可运行测试示例.  
 
 包含自定义函数示例的规则:  
-[custom.json](graph/custom.json)  
+[custom.json](graph/custom.json)（当前 v3 规范，详见 [archive/readme.md](archive/readme.md)）  
 
 
 
@@ -106,7 +120,7 @@ Package                  Version Editable project location
 ------------------------ ------- --------------------------------
 ...                      ...
 zen-engine               0.49.1
-zen-rule                 0.10.1  /home/ryefccd/workspace/zen-rule
+zen-rule                 0.30.0  /home/ryefccd/workspace/zen-rule
 ```
 
 ### 包构建

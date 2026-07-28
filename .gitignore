@@ -4,3 +4,14 @@
 **/*.pyc
 tmp
 .coverage
+
+# Java / Maven
+java/target/
+java/target
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+java/.idea/
+java/*.iml
